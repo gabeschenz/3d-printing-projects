@@ -23,10 +23,25 @@ Each project includes:
 
 - [OpenSCAD](https://openscad.org/) - Free 3D CAD software for viewing and exporting designs
 - 3D Printer or access to 3D printing service
+- [uv](https://docs.astral.sh/uv/) (optional) - Fast Python package manager for automation tools
 
-## Usage
+## Quick Start
 
+### Using Python tools (recommended)
+```bash
+# Install dependencies
+uv sync
+
+# Preview and generate STL
+uv run preview
+```
+
+See [QUICKSTART.md](QUICKSTART.md) for detailed Python/uv setup.
+
+### Using OpenSCAD directly
 1. Open the `.scad` file in OpenSCAD
 2. Customize parameters as needed
 3. Export as STL file
 4. Slice and print with your preferred slicer software
+
+See [SETUP.md](SETUP.md) for OpenSCAD setup and workflow details.

@@ -1,0 +1,66 @@
+[project]
+name = "3d-printing-projects"
+version = "0.1.0"
+description = "Collection of 3D printable designs"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "click>=8.1.0",
+]
+
+[project.optional-dependencies]
+# For generating OpenSCAD code programmatically (advanced)
+generate = [
+    "solidpython2>=2.1.0",
+]
+
+# For analyzing STL files (validation, stats)
+analyze = [
+    "trimesh>=4.0.0",
+    "numpy-stl>=3.0.0",
+]
+
+# Development tools
+dev = [
+    "ruff>=0.1.0",
+    "pytest>=7.0.0",
+]
+
+# All optional features
+all = [
+    "3d-printing-projects[generate,analyze,dev]",
+]
+
+[project.scripts]
+# Command-line tools
+preview = "scripts.preview:main"
+check = "scripts.preview:check"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.uv]
+dev-dependencies = []
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "N", "W"]
+ignore = []
+
+# Task runner configuration (install with: uv add --dev poethepoet)
+[tool.poe.tasks]
+# Basic OpenSCAD tasks
+preview = { cmd = "python -m scripts.preview", help = "Generate and preview STL" }
+check = { cmd = "openscad --check cpap-wall-mount.scad", help = "Check OpenSCAD syntax" }
+render = { cmd = "openscad -o cpap-wall-mount.stl cpap-wall-mount.scad", help = "Render STL file" }
+
+# Linting and formatting
+lint = { cmd = "ruff check .", help = "Lint Python code" }
+format = { cmd = "ruff format .", help = "Format Python code" }
+
+# Combined tasks
+all = ["check", "render", "lint"]
