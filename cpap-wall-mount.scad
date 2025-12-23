@@ -1,167 +1,130 @@
 /*
- * CPAP Hose and Nasal Mask Wall Mount
+ * CPAP Hose Wall Mount - Arc Design
  *
- * A functional and elegant wall-mounted holder for CPAP equipment.
- * Keeps hose and mask organized and out of reach of curious cats!
+ * A simple, elegant arc-shaped holder that extends from the wall.
+ * The hose rests in a groove along the arc, allowing it to drape
+ * naturally in loops. Keeps hose organized and away from cats!
  *
  * Features:
- * - Wall-mounted backplate with mounting holes
- * - Large curved hook for CPAP hose
- * - Vertical peg for hanging nasal mask
- * - Smooth, rounded edges for visual appeal
- * - Parametric design for easy customization
+ * - Wall-mounted backplate (prints flat, mounts vertically)
+ * - Curved arc extending from wall
+ * - Groove sized for standard CPAP hose (19-22mm)
+ * - Deep enough to hold 2 loops of hose
  */
 
 // ===== PARAMETERS =====
 
-// Main dimensions
-backplate_height = 120;      // Height of the backplate
-backplate_width = 80;        // Width of the backplate
-backplate_thickness = 4;     // Thickness of the backplate
-wall_clearance = 3;          // Space between wall and backplate
+// Wall mounting backplate
+backplate_width = 60;           // Width of backplate
+backplate_height = 80;          // Height of backplate
+backplate_thickness = 5;        // Thickness of backplate
 
 // Mounting holes
-mounting_hole_diameter = 5;  // Diameter for mounting screws
-mounting_hole_inset = 10;    // Distance from edges
+mounting_hole_diameter = 5;     // Diameter for mounting screws
+mounting_hole_spacing = 50;     // Vertical spacing between holes
 
-// Hose hook dimensions
-hook_diameter = 40;          // Outer diameter of the hose hook
-hook_thickness = 8;          // Thickness of the hook arm
-hook_depth = 45;             // How far the hook extends from wall
-hook_offset_y = 30;          // Position from top
+// Arc dimensions
+arc_radius = 80;                // Radius of the arc curve
+arc_thickness = 12;             // Thickness of the arc arm
+arc_width = 50;                 // Width of the arc (front to back)
+arc_angle = 180;                // Degrees of arc (180 = semicircle)
 
-// Mask peg dimensions
-peg_diameter = 12;           // Diameter of the mask peg
-peg_length = 35;             // Length of the peg
-peg_offset_y = -25;          // Position from center (negative = lower)
+// Hose groove
+groove_width = 25;              // Width of groove (for 19-22mm hose)
+groove_depth = 15;              // Depth of groove (how deep hose sits)
 
 // Aesthetics
-corner_radius = 8;           // Radius for rounded corners
-$fn = 64;                    // Smoothness of curves
+corner_radius = 3;              // Rounded corners
+$fn = 64;                       // Smoothness
 
 // ===== MODULES =====
 
-// Rounded rectangle for the backplate
-module rounded_rectangle(w, h, r, thickness) {
-    linear_extrude(height = thickness)
-    offset(r = r)
-    offset(r = -r)
-    square([w, h], center = true);
-}
-
-// Backplate with mounting holes
+// Wall mounting backplate
 module backplate() {
     difference() {
-        // Main backplate with rounded corners
-        rounded_rectangle(backplate_width, backplate_height, corner_radius, backplate_thickness);
+        // Main plate with rounded corners
+        translate([-backplate_width/2, 0, 0])
+        linear_extrude(height = backplate_height)
+        offset(r = corner_radius)
+        offset(r = -corner_radius)
+        square([backplate_width, backplate_thickness]);
 
-        // Mounting holes (4 corners)
-        for (x = [-1, 1], y = [-1, 1]) {
-            translate([
-                x * (backplate_width/2 - mounting_hole_inset),
-                y * (backplate_height/2 - mounting_hole_inset),
-                -1
-            ])
+        // Mounting holes
+        for (i = [-1, 1]) {
+            translate([0, backplate_thickness + 1, backplate_height/2 + i * mounting_hole_spacing/2])
+            rotate([90, 0, 0])
             cylinder(d = mounting_hole_diameter, h = backplate_thickness + 2);
         }
 
         // Countersink for screw heads
-        for (x = [-1, 1], y = [-1, 1]) {
-            translate([
-                x * (backplate_width/2 - mounting_hole_inset),
-                y * (backplate_height/2 - mounting_hole_inset),
-                backplate_thickness - 2
-            ])
-            cylinder(d = mounting_hole_diameter * 2, h = 3);
+        for (i = [-1, 1]) {
+            translate([0, backplate_thickness - 1, backplate_height/2 + i * mounting_hole_spacing/2])
+            rotate([90, 0, 0])
+            cylinder(d = mounting_hole_diameter * 2, h = 2);
         }
     }
 }
 
-// Large curved hook for CPAP hose
-module hose_hook() {
-    translate([0, hook_offset_y, backplate_thickness/2 + wall_clearance]) {
-        rotate([0, 90, 0]) {
-            difference() {
-                // Outer curve
-                union() {
-                    // Main hook curve
-                    rotate_extrude(angle = 200, $fn = 64)
-                    translate([hook_diameter/2, 0, 0])
-                    circle(d = hook_thickness);
-
-                    // Base reinforcement
-                    translate([0, 0, -hook_thickness/2])
-                    cylinder(d = hook_diameter + hook_thickness, h = hook_thickness);
-                }
-
-                // Remove bottom half to make it a hook
-                translate([0, -hook_diameter, -hook_depth])
-                cube([hook_diameter * 2, hook_diameter * 2, hook_depth * 2], center = true);
+// Arc arm with groove for hose
+module arc_with_groove() {
+    translate([0, backplate_thickness, backplate_height/2]) {
+        difference() {
+            // Main arc body
+            rotate([0, 90, 0])
+            rotate_extrude(angle = arc_angle)
+            translate([arc_radius, 0, 0])
+            hull() {
+                translate([0, -arc_width/2, 0])
+                circle(d = arc_thickness);
+                translate([0, arc_width/2, 0])
+                circle(d = arc_thickness);
             }
 
-            // End cap for smooth finish
-            rotate([0, 0, 200])
-            translate([hook_diameter/2, 0, 0])
-            sphere(d = hook_thickness);
-
-            // Start cap
-            translate([hook_diameter/2, 0, 0])
-            sphere(d = hook_thickness);
+            // Groove for hose - U-shaped channel along top of arc
+            rotate([0, 90, 0])
+            rotate_extrude(angle = arc_angle)
+            translate([arc_radius, 0, 0])
+            translate([0, 0, arc_thickness/2 - groove_depth/2])
+            hull() {
+                translate([0, -groove_width/2, 0])
+                circle(d = groove_depth);
+                translate([0, groove_width/2, 0])
+                circle(d = groove_depth);
+            }
         }
     }
 }
 
-// Vertical peg for nasal mask
-module mask_peg() {
-    translate([0, peg_offset_y, backplate_thickness/2 + wall_clearance]) {
-        rotate([0, 90, 0]) {
-            // Main peg shaft
-            cylinder(d = peg_diameter, h = peg_length);
-
-            // Rounded end
-            translate([0, 0, peg_length])
-            sphere(d = peg_diameter);
-
-            // Base reinforcement
-            cylinder(d1 = peg_diameter + 6, d2 = peg_diameter, h = 8);
-        }
+// Reinforcement where arc meets backplate
+module reinforcement() {
+    translate([0, backplate_thickness, backplate_height/2]) {
+        rotate([0, 90, 0])
+        cylinder(d = arc_thickness + 8, h = arc_width, center = true);
     }
-}
-
-// Decorative accent line (optional detail)
-module accent_line() {
-    translate([0, 0, backplate_thickness - 0.5])
-    linear_extrude(height = 0.6)
-    offset(r = -3)
-    offset(r = 3)
-    offset(r = -corner_radius - 2)
-    offset(r = corner_radius + 2)
-    square([backplate_width, backplate_height], center = true);
 }
 
 // ===== ASSEMBLY =====
 
 module cpap_wall_mount() {
-    // Main backplate
+    // Backplate (will be vertical on wall, prints flat on bed)
     backplate();
 
-    // Hose hook (top portion)
-    hose_hook();
+    // Reinforcement
+    reinforcement();
 
-    // Mask peg (lower portion)
-    mask_peg();
-
-    // Optional accent (comment out if you prefer simpler look)
-    // accent_line();
+    // Arc with groove
+    arc_with_groove();
 }
 
 // ===== RENDER =====
 
+// Print orientation: lay the backplate flat on the print bed
+// The arc will extend upward during printing
 cpap_wall_mount();
 
-// Uncomment to see cross-section view for debugging:
+// Uncomment for cross-section view:
 // difference() {
 //     cpap_wall_mount();
-//     translate([-100, 0, -50])
+//     translate([0, -100, -50])
 //     cube([200, 200, 200]);
 // }
