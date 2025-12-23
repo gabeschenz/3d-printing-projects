@@ -5,11 +5,12 @@ A collection of useful 3D printable designs.
 ## Projects
 
 ### CPAP Wall Mount Holder
-A functional and elegant wall-mounted organizer for CPAP hose and nasal mask. Keeps equipment tidy and out of reach of pets.
+A functional and elegant wall-mounted organizer for CPAP hose. The arc design with groove allows the hose to drape naturally in loops, keeping it tidy and out of reach of pets.
 
 - **File**: `cpap-wall-mount.scad`
 - **Documentation**: See `cpap-wall-mount-README.md`
-- **Features**: Dual hook design, wall-mounted, parametric
+- **Features**: Arc-style design with hose groove, wall-mounted, parametric
+- **Preview Tools**: See `SETUP.md` for local preview setup
 
 ## Getting Started
 
