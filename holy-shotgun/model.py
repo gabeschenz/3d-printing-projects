@@ -1,12 +1,12 @@
 """Parametric model of a relic-style "holy shotgun" display prop.
 
-A non-functional costume/display piece inspired by the crucifix shotgun in
+A non-functional costume/display piece modelled on the crucifix shotgun in
 the film Constantine (2005).  Nothing here can chamber or fire anything: the
-barrel is a solid rod sleeve, the drum is a free-spinning ornament, and the
-shells are solid dummies.
+barrel is a hollow sleeve over a solid rod, the drum is a free-spinning
+ornament, and the shells are solid dummies.
 
 Coordinate system for the assembled prop (millimetres):
-    X  runs along the barrel, muzzle at +X, rear face of the receiver at X=0
+    X  runs along the barrel, muzzle at +X, rear face of the drum at X=0
     Y  is left/right, +Y is the holder's left
     Z  is up; the barrel axis is Z=0
 
@@ -24,21 +24,24 @@ from build123d import (
     Circle,
     Cone,
     Cylinder,
-    Ellipse,
     FontStyle,
+    Line,
     Location,
     Part,
     Plane,
     Polygon,
     Pos,
     Rectangle,
-    RectangleRounded,
+    RegularPolygon,
     Rot,
+    SlotOverall,
+    Solid,
+    Spline,
     Text,
     chamfer,
     extrude,
     fillet,
-    loft,
+    make_face,
 )
 
 # --------------------------------------------------------------------------
@@ -54,89 +57,90 @@ FIT = 0.15    # parts that are glued or pressed together
 SLIDE = 0.25  # parts that should turn or slide freely
 
 # Hardware.
-ROD_R = 4.0          # 8 mm rod: barrel spine and drum axle
+ROD_R = 4.0          # 8 mm rod: barrel spine, cross spine and drum axle
 SCREW_CLEAR_R = 1.7  # M3 clearance hole
 SCREW_TAP_R = 1.4    # M3 self-tapping pilot (2.8 mm)
 SCREW_HEAD_R = 3.2   # M3 socket-head counterbore
 SCREW_HEAD_DEPTH = 3.2
 
-# Receiver ("frame").  Printed as left/right halves split on Y=0.
-FRAME_HALF_W = 20.0
-FRAME_TOP_Z = 27.0
-FRAME_BOT_Z = -60.0
-STRAP_BOT_Z = 15.0
-REAR_BLOCK_X1 = 88.0   # rear block spans X 0..88
-BAY_X1 = 157.0         # drum bay spans X 88..157
-FRAME_X1 = 197.0       # front block spans X 157..197
-BOSS_LEN = 6.0         # shroud locating boss on the front face
-
-# Drum (12 dummy shells, Striker style: the top chamber lines up with the barrel).
+# Drum: an open cage of two flanges on a hub, twelve exposed dummy shells.
+# Striker style, so the top chamber lines up with the barrel.
 N_CHAMBERS = 12
-DRUM_PITCH_R = 47.5
+DRUM_PITCH_R = 43.5
 AXLE_Z = -DRUM_PITCH_R
-DRUM_R = 61.5
-SHIELD_X0, SHIELD_X1 = 88.0, 92.0
-DRUM_X0, DRUM_X1 = 92.5, 156.5
-SHELL_R = 10.0
-SHELL_RIM_R = 11.25
-SHELL_RIM_T = 1.8
-CHAMBER_R = SHELL_R + 0.3
-DRUM_FRONT_WALL = 4.0
+DRUM_R = 56.0
+DRUM_X0, DRUM_X1 = 0.0, 64.0
+DRUM_REAR_T = 8.0        # rear flange thickness
+DRUM_FRONT_T = 12.0      # front flange thickness
+DRUM_HUB_R = 30.0
+DRUM_HEX_AF = 44.0       # hex spigot that keys the rear flange to the hub
+SHELL_R = 9.5
+SHIELD_X0, SHIELD_X1 = -4.5, -0.5
 
-# Barrel, spine rod and shroud.
-BARREL_R = 11.0
-BARREL_X0 = 179.0
-BARREL_SPLIT_X = 370.0
-MUZZLE_X = 560.0
-SPINE_X0, SPINE_X1 = 165.0, 546.0
-SHROUD_R_OUT, SHROUD_R_IN = 20.0, 17.5
-SHROUD_X0 = FRAME_X1
-SHROUD_SPLIT_X = 348.0
-SHROUD_X1 = 500.0
-SPIGOT_R = SHROUD_R_IN - 0.2
-SPIGOT_LEN = 8.0
-BAND_R = 22.0
-RIB_HALF_W = 7.0
-RIB_TOP_Z = 26.0
+# Receiver, printed as left/right halves split on Y=0.
+RECV_HALF_W = 18.0
+RECV_X0 = -26.0          # rear face, where the grip bolts on
+RECV_X1 = 104.0          # front face, where the barrel starts
+RECV_TOP_Z = 23.5
+RECV_BOT_Z = -66.0
+STRAP_BOT_Z = 13.5
+HOOD_R_IN, HOOD_R_OUT = 57.2, 67.0   # curved hood over the drum, measured from the axle
+HOOD_HALF_W = 38.0
 
-# Accessories.
-TORCH_Z = 33.0
-TORCH_X0, TORCH_X1 = 248.0, 340.0
-DRAGON_Z = -36.0
-DRAGON_R = 11.0
-DRAGON_X0, DRAGON_X1 = 300.0, 500.0
-FOREGRIP_X0, FOREGRIP_X1 = 215.0, 245.0
+# Grip.
+GRIP_HALF_W = 17.0
 
-# Trigger.
-TRIGGER_PIVOT = (61.0, -49.0)  # (X, Z)
-TRIGGER_HALF_W = 4.0
+# Crucifix barrel: octagonal sleeves joined by a hub, all threaded on 8 mm rod.
+OCT_AF = 34.0            # across flats
+CAV_R = 14.2             # hollow interior of the sleeves
+TENON_AF = 24.0
+TENON_LEN = 12.0
+MORTISE_DEPTH = TENON_LEN + 0.4
+SPINE_Z = 4.5            # the two rods cross in the hub, so one rides high
+CROSS_Z = -4.5           # and the other low
+TAIL_LEN = 190.0         # receiver to hub
+HUB_X0, HUB_X1 = RECV_X1 + TAIL_LEN, RECV_X1 + TAIL_LEN + 44.0
+HUB_XC = (HUB_X0 + HUB_X1) / 2
+HUB_HALF_Y = 32.0
+HEAD_LEN = 90.0          # hub to muzzle cap
+ARM_LEN = 68.0           # hub to arm cap
+CAP_R = 19.5
+CAP_LEN = 12.0
+MUZZLE_X = HUB_X1 + HEAD_LEN + CAP_LEN
 
-# Inscriptions (engraved on the receiver sides).  These are stand-ins chosen
-# for the theme, not a transcription of the film prop.
-TEXT_LEFT = "VADE RETRO SATANA"
-TEXT_RIGHT = "LUX IN TENEBRIS"
+# Torch (the scope-like tube on top) and its pedestal.
+TORCH_Z = 46.0
+TORCH_X0, TORCH_X1 = 112.0, 302.0
+PEDESTAL_X0, PEDESTAL_X1 = 180.0, 226.0
+
+# Dragon's Breath tube and the twisted rod that runs back to the receiver.
+DRAGON_Z = -34.0
+DRAGON_R = 12.0
+DRAGON_X0, DRAGON_X1 = 288.0, 412.0
+TWIST_SOCKET_R = 5.95  # the twisted rod is 11.4 mm across
+
+# Inscriptions, as far as they can be read from photos of the film prop.
 TEXT_FONT = "DejaVu Serif"
-TEXT_SIZE = 6.5
-TEXT_DEPTH = 0.8
+TEXT_DEPTH = 0.7
+TEXT_TAIL_RIGHT = "QUI DESIDERAT PACEM"
+TEXT_TAIL_LEFT = "BREVE ET EFFICAX PER EXEMPLA"
+TEXT_HEAD_RIGHT = "PATER IN MANUS TUAS"
+TEXT_HEAD_LEFT = "COMMENDO SPIRITUM"
 
-# Frame clamp screws (X, Z).  M3 x 30, heads on the right-hand side.
-FRAME_SCREWS = [(12, 14), (76, -24), (163, -26), (189, -26), (168, 21)]
-GRIP_TONGUE_SCREWS = [(10, -46), (23, -52)]
-GRIP_BODY_SCREWS = [(7.3, -100), (-4.8, -145)]  # M3 x 20
+# Screws (X, Z).  M3 x 30 through the receiver, heads on the right-hand side.
+RECV_SCREWS = [(-18, 15.5), (72, 15.5), (74, -20), (92, -50), (96, -12)]  # all clear of the hood
+TONGUE_SCREWS = [(-17, 4), (-17, -24)]
+TRIGGER_SCREW = (-14, -59)
+GRIP_SCREWS = [(-66, -10), (-93, -84), (-104, -150)]  # M3 x 20
 
 # Colours used for previews and as a filament suggestion.
 BRASS = (0.78, 0.62, 0.25)
-STEEL = (0.25, 0.26, 0.29)
-WOOD = (0.36, 0.22, 0.12)
-GOLD = (0.90, 0.74, 0.25)
-HARDWARE = (0.70, 0.72, 0.75)
+SILVER = (0.72, 0.74, 0.77)
+HARDWARE = (0.45, 0.47, 0.50)
 
 # --------------------------------------------------------------------------
 # Small geometry helpers
 # --------------------------------------------------------------------------
-
-P_XZ = Plane(origin=(0, 0, 0), x_dir=(1, 0, 0), z_dir=(0, -1, 0))  # local (x, y) -> (X, Z)
-P_YZ = Plane(origin=(0, 0, 0), x_dir=(0, 1, 0), z_dir=(1, 0, 0))   # local (x, y) -> (Y, Z)
 
 
 def xcyl(r, x0, x1, y=0.0, z=0.0):
@@ -182,16 +186,44 @@ def rect(x0, x1, y0, y1):
     return Pos((x0 + x1) / 2, (y0 + y1) / 2) * Rectangle(x1 - x0, y1 - y0)
 
 
-def cross_sketch(length, width, bar, arm_pos=0.3, gusset=0.0):
-    """Latin cross.  Long axis on local x with the head at +x, centred on its
-    bounding box.  `gusset` adds a small diamond at the crossing so the arms
-    print without an unsupported ceiling when the long axis is vertical."""
+def octagon(af):
+    """Octagon with flats on the top, bottom and sides."""
+    return RegularPolygon(af / 2, 8, major_radius=False, rotation=22.5)
+
+
+def oct_x(af, x0, x1, z=0.0):
+    """Octagonal prism along X."""
+    return prism_yz(Pos(0, z) * octagon(af), x0, x1)
+
+
+def oct_y(af, y0, y1, x=0.0):
+    """Octagonal prism along Y."""
+    return prism_xz(Pos(x, 0) * octagon(af), y0, y1)
+
+
+def cross_sketch(length, width, bar, arm_pos=0.3):
+    """Latin cross, long axis on local x with the head at +x."""
     cx = length / 2 - arm_pos * length
-    sk = Rectangle(length, bar) + Pos(cx, 0) * Rectangle(bar, width)
-    if gusset > 0:
-        side = (bar / 2 + gusset) * math.sqrt(2)
-        sk += Pos(cx, 0) * Rot(0, 0, 45) * Rectangle(side, side)
+    return Rectangle(length, bar) + Pos(cx, 0) * Rectangle(bar, width)
+
+
+def cross_pattee(size, waist=0.22):
+    """Cross with arms that flare toward the tips."""
+    h, w = size / 2, size * waist / 2
+    arm = poly((0, w), (h, h * 0.62), (h, -h * 0.62), (0, -w))
+    sk = Rectangle(2 * w, 2 * w)
+    for a in (0, 90, 180, 270):
+        sk += Rot(0, 0, a) * arm
     return sk
+
+
+def fitted_text(label, max_len, size):
+    """Bold text, shrunk if needed so it is no longer than max_len."""
+    txt = Text(label, font_size=size, font=TEXT_FONT, font_style=FontStyle.BOLD)
+    width = txt.bounding_box().size.X
+    if width > max_len:
+        txt = Text(label, font_size=size * max_len / width, font=TEXT_FONT, font_style=FontStyle.BOLD)
+    return txt
 
 
 def about_axle(angle_deg):
@@ -199,154 +231,132 @@ def about_axle(angle_deg):
     return Pos(0, 0, AXLE_Z) * Rot(angle_deg, 0, 0) * Pos(0, 0, -AXLE_Z)
 
 
+def spiral_band(cx, cz, r_max, turns, width, start_deg=0.0, hand=1):
+    """A scroll: a tapering band along an Archimedean spiral, as an (X, Z) sketch."""
+    r_min = 2.5
+    n = int(turns * 14)
+    inner, outer = [], []
+    for i in range(n + 1):
+        t = i / n
+        r = r_min + (r_max - r_min) * t
+        a = math.radians(start_deg) + hand * 2 * math.pi * turns * t
+        half = width / 2 * (0.5 + 0.5 * t)
+        inner.append((cx + (r - half) * math.cos(a), cz + (r - half) * math.sin(a)))
+        outer.append((cx + (r + half) * math.cos(a), cz + (r + half) * math.sin(a)))
+    return make_face([
+        Spline(*outer), Line(outer[-1], inner[-1]), Spline(*inner[::-1]), Line(inner[0], outer[0]),
+    ])
+
+
 # --------------------------------------------------------------------------
-# Receiver
+# Receiver, trigger and grip
 # --------------------------------------------------------------------------
 
 
-def trigger_sketch():
-    px, pz = TRIGGER_PIVOT
-    blade = poly(
-        (px + 2.0, pz - 3.0),
-        (px + 2.0, pz - 13.0),
-        (px + 1.2, pz - 20.0),
-        (px + 1.6, pz - 27.0),
-        (px + 3.4, pz - 34.0),
-        (px + 5.6, pz - 39.0),
-        (px + 1.0, pz - 39.5),
-        (px - 2.6, pz - 33.0),
-        (px - 4.6, pz - 25.0),
-        (px - 5.0, pz - 12.0),
-        (px - 5.0, pz - 3.0),
-    )
-    return blade + Pos(px, pz) * Circle(5.5)
-
-
-def frame_full():
-    """The whole receiver before it is split into halves."""
-    w = FRAME_HALF_W
+def receiver_full():
+    """The whole receiver before it is split into halves: a rear plate behind
+    the drum, a strap over it and a block in front that carries the barrel."""
+    w = RECV_HALF_W
     outline = poly(
-        (0, FRAME_BOT_Z),
-        (REAR_BLOCK_X1, FRAME_BOT_Z),
-        (REAR_BLOCK_X1, STRAP_BOT_Z),
-        (BAY_X1, STRAP_BOT_Z),
-        (BAY_X1, FRAME_BOT_Z),
-        (176, FRAME_BOT_Z),
-        (FRAME_X1, -36),
-        (FRAME_X1, FRAME_TOP_Z),
-        (0, FRAME_TOP_Z),
+        (RECV_X0, RECV_BOT_Z),
+        (SHIELD_X0, RECV_BOT_Z),
+        (SHIELD_X0, STRAP_BOT_Z),
+        (DRUM_X1 + 0.5, STRAP_BOT_Z),
+        (DRUM_X1 + 0.5, -64),
+        (86, -64),
+        (RECV_X1, -46),
+        (RECV_X1, 19),
+        (99, RECV_TOP_Z),
+        (RECV_X0, RECV_TOP_Z),
     )
-    rear_top = outline.vertices().sort_by_distance((0, FRAME_TOP_Z, 0))[0]
-    outline = fillet(rear_top, 12)
-    front_top = outline.vertices().sort_by_distance((FRAME_X1, FRAME_TOP_Z, 0))[0]
-    outline = fillet(front_top, 4)
     body = prism_xz(outline, -w, w)
-    # Soften the block: bevel every edge of the two outer faces.
     body = chamfer(body.edges().filter_by(lambda e: abs(abs(e.center().Y) - w) < 1e-6), 2.0)
 
-    # Trigger guard: a loop under the rear block, 12 mm wide.
-    guard = Pos(61, -74) * RectangleRounded(50, 48, 12) - Pos(61, -71.5) * RectangleRounded(40, 43, 8)
-    guard &= rect(30, 90, -100, FRAME_BOT_Z + 0.5)
-    body += prism_xz(guard, -6, 6)
-
-    # Rear sight: a V-notched block on top of the receiver.
-    sight = rect(-7, 7, FRAME_TOP_Z - 1, FRAME_TOP_Z + 4) - poly((-3.2, FRAME_TOP_Z + 4.2), (0, FRAME_TOP_Z + 1), (3.2, FRAME_TOP_Z + 4.2))
-    body += prism_yz(sight, 6, 16)
+    # Hood: a curved fender over the top of the drum, concentric with it.
+    hood = Pos(0, AXLE_Z) * (Circle(HOOD_R_OUT) - Circle(HOOD_R_IN)) & rect(-HOOD_HALF_W, HOOD_HALF_W, 0, 40)
+    body += prism_yz(hood, -12, DRUM_X1 + 0.5)
+    # Crown the whole top to the same curve.
+    body &= xcyl(HOOD_R_OUT, RECV_X0 - 1, RECV_X1 + 1, z=AXLE_Z) + box(RECV_X0 - 1, RECV_X1 + 1, -60, 60, -120, 0)
 
     # Square boss that keys the recoil shield and carries the drum axle.
     body += box(SHIELD_X0 - 1, SHIELD_X1, -6, 6, AXLE_Z - 6, AXLE_Z + 6)
+    # Tenon for the rear barrel sleeve.
+    body += oct_x(TENON_AF, RECV_X1 - 1, RECV_X1 + TENON_LEN)
 
-    # Shroud locating boss and anti-rotation key on the front face.
-    body += xcyl(SPIGOT_R, FRAME_X1 - 1, FRAME_X1 + BOSS_LEN)
-    body += box(FRAME_X1 - 1, FRAME_X1 + 4, -2.8, 2.8, -(SHROUD_R_OUT - 0.2), -(SHROUD_R_IN - 1.0))
-
-    # Raised medallion on each side of the rear block.
-    medallion = (
-        Circle(26) - Circle(23) + Rot(0, 0, 90) * cross_sketch(36, 24, 6.5)
-    )
-    medallion = Pos(38, -12) * medallion
-    body += prism_xz(medallion, w - 0.5, w + 1.2)
-    body += prism_xz(medallion, -w - 1.2, -w + 0.5)
-
-    # --- pockets -----------------------------------------------------------
-    cuts = []
-    cuts.append(xcyl(BARREL_R + FIT, BARREL_X0, FRAME_X1 + BOSS_LEN + 1))        # barrel socket
-    cuts.append(xcyl(ROD_R + FIT, SPINE_X0, BARREL_X0 + 1))                      # spine rod pocket
-    cuts.append(xcyl(ROD_R + FIT, REAR_BLOCK_X1 - 10, SHIELD_X1 + 1, z=AXLE_Z))  # axle, rear
-    cuts.append(xcyl(ROD_R + FIT, BAY_X1 - 1, BAY_X1 + 10, z=AXLE_Z))            # axle, front
-    cuts.append(box(3.7, 30.3, -5.2, 5.2, FRAME_BOT_Z - 1, -37.7))               # grip tongue pocket
-
-    px, pz = TRIGGER_PIVOT
-    cavity = Pos(px, pz) * Circle(6.2) + rect(px - 7.6, px + 2.4, FRAME_BOT_Z - 1, pz)
-    cuts.append(prism_xz(cavity, -(TRIGGER_HALF_W + 0.3), TRIGGER_HALF_W + 0.3))
-    cuts.append(xcyl(2.6, 34, px - 7.5, z=pz - 6.5))                             # pen-spring channel
-
-    for x, z in FRAME_SCREWS + GRIP_TONGUE_SCREWS + [TRIGGER_PIVOT]:
-        cuts.append(ycyl(SCREW_CLEAR_R, -w - 2, 0, x, z))
-        cuts.append(ycyl(SCREW_HEAD_R, -w - 2, -w + SCREW_HEAD_DEPTH, x, z))
-        cuts.append(ycyl(SCREW_TAP_R, 0, 14, x, z))
+    cuts = [
+        xcyl(ROD_R + FIT, 84, RECV_X1 + TENON_LEN + 1, z=SPINE_Z),          # barrel spine
+        xcyl(ROD_R + FIT, -15, SHIELD_X1 + 1, z=AXLE_Z),                     # axle, rear
+        xcyl(ROD_R + FIT, DRUM_X1 + 0.4, 76, z=AXLE_Z),                      # axle, front
+        xcyl(TWIST_SOCKET_R, 94, RECV_X1 + 1, z=DRAGON_Z),                   # twisted rod socket
+        box(RECV_X0 - 1, -7.8, -5.2, 5.2, -34.3, 12.3),                      # grip tongue pocket
+        box(-20, -8, -4.2, 4.2, RECV_BOT_Z - 1, -52),                        # trigger pocket
+    ]
+    for x, z in RECV_SCREWS + TONGUE_SCREWS + [TRIGGER_SCREW]:
+        cuts.append(ycyl(SCREW_CLEAR_R, -w - 1, 0, x, z))
+        cuts.append(ycyl(SCREW_HEAD_R, -w - 1, -w + SCREW_HEAD_DEPTH, x, z))
+        cuts.append(ycyl(SCREW_TAP_R, 0, 16, x, z))
     for c in cuts:
         body -= c
 
-    # --- inscriptions ------------------------------------------------------
-    text_z = (STRAP_BOT_Z + FRAME_TOP_Z) / 2
-    left_plane = Plane(origin=(98, w, text_z), x_dir=(-1, 0, 0), z_dir=(0, 1, 0))
-    right_plane = Plane(origin=(90, -w, text_z), x_dir=(1, 0, 0), z_dir=(0, -1, 0))
-    for plane, label in ((left_plane, TEXT_LEFT), (right_plane, TEXT_RIGHT)):
-        txt = Text(label, font_size=TEXT_SIZE, font=TEXT_FONT, font_style=FontStyle.BOLD)
-        body -= extrude(plane * txt, amount=-TEXT_DEPTH)
+    # Engraved medallion on each side of the front block.
+    medallion = Pos(83, -34) * (Circle(12) - Circle(10.6) + cross_pattee(15))
+    body -= prism_xz(medallion, w - TEXT_DEPTH, w + 1)
+    body -= prism_xz(medallion, -w - 1, -w + TEXT_DEPTH)
     return body
 
 
-def split_frame(full):
-    left = full & box(-100, 400, 0, 100, -300, 300)
-    right = full & box(-100, 400, -100, 0, -300, 300)
+def split_halves(full):
+    left = full & box(-400, 600, 0, 200, -400, 400)
+    right = full & box(-400, 600, -200, 0, -400, 400)
     return left, right
 
 
 def trigger():
-    px, pz = TRIGGER_PIVOT
-    t = prism_xz(trigger_sketch(), -TRIGGER_HALF_W, TRIGGER_HALF_W)
-    t -= ycyl(SCREW_CLEAR_R + 0.1, -10, 10, px, pz)
-    t -= xcyl(2.5, px - 7, px - 3.5, z=pz - 6.5)  # seat for the return spring
-    return t
+    """A fixed spur trigger, pinned in the receiver by one screw."""
+    sk = poly(
+        (-19.7, -52.3), (-8.3, -52.3), (-8.3, -66), (-7.6, -74), (-9.2, -84), (-12.0, -92),
+        (-15.0, -92), (-15.6, -82), (-17.6, -74), (-19.7, -66),
+    )
+    t = prism_xz(sk, -4.0, 4.0)
+    x, z = TRIGGER_SCREW
+    return t - ycyl(SCREW_CLEAR_R, -10, 10, x, z)
+
+
+def grip_outline():
+    back = [
+        (RECV_X0, RECV_TOP_Z), (-46, 22.5), (-68, 15), (-88, -1), (-104, -26), (-116, -60),
+        (-127, -96), (-137, -128), (-141, -150), (-135, -166), (-120, -172), (-104, -166),
+        (-94, -150), (-86, -124), (-76, -100), (-62, -82), (-46, -71), (RECV_X0, RECV_BOT_Z),
+    ]
+    return make_face([Spline(*back), Line(back[-1], back[0])])
 
 
 def grip_full():
-    """Pistol grip with a tongue that is clamped between the frame halves."""
-    rake = math.tan(math.radians(15))
+    """Bird's-head grip with a tongue that is clamped between the receiver halves."""
+    w = GRIP_HALF_W
+    body = prism_xz(grip_outline(), -w, w)
+    side_edges = body.edges().filter_by(lambda e: abs(abs(e.center().Y) - w) < 1e-6 and e.center().X < RECV_X0 - 2)
+    body = fillet(side_edges, 6.0)
 
-    def section(z, a, b):
-        cx = 18 + (z - FRAME_BOT_Z) * rake  # z is negative below the frame, so the grip sweeps back
-        return Pos(cx, 0, z) * Ellipse(a, b)
-
-    sections = [
-        section(FRAME_BOT_Z, 18.0, 13.0),
-        section(-95, 19.5, 14.5),
-        section(-135, 20.5, 14.0),
-        section(-160, 22.0, 15.0),
-        section(-166, 24.0, 16.5),
+    # Scrollwork, engraved on both faces.
+    scrolls = [
+        (-54, 2, 15, 2.1, 200, 1), (-80, -26, 13, 2.0, 30, -1), (-52, -44, 12, 1.9, 120, 1),
+        (-98, -62, 12, 2.0, 250, 1), (-76, -72, 8, 1.6, 0, -1), (-110, -102, 12, 2.0, 60, -1),
+        (-118, -136, 12, 2.0, 220, 1), (-118, -160, 6, 1.4, 90, -1),
     ]
-    body = loft(sections)
-    # Finger grooves along the front strap.
-    for z in (-82, -104, -126):
-        cx = 18 + (z - FRAME_BOT_Z) * rake
-        body -= ycyl(10, -30, 30, cx + 20 + 7.6, z)
-    # Tongue.
-    body += box(4, 30, -5, 5, FRAME_BOT_Z - 2, -38)
-    for x, z in GRIP_TONGUE_SCREWS:
+    for cx, cz, r, turns, start, hand in scrolls:
+        band = spiral_band(cx, cz, r, turns, 2.0, start, hand)
+        body -= prism_xz(band, w - TEXT_DEPTH, w + 1)
+        body -= prism_xz(band, -w - 1, -w + TEXT_DEPTH)
+
+    body += box(RECV_X0 - 1, -8, -5, 5, -34, 12)                 # tongue
+    for x, z in TONGUE_SCREWS:
         body -= ycyl(SCREW_CLEAR_R, -10, 10, x, z)
-    for x, z in GRIP_BODY_SCREWS:
-        body -= ycyl(SCREW_CLEAR_R, -30, 0, x, z)
-        body -= ycyl(SCREW_HEAD_R, -30, -9.0, x, z)
-        body -= ycyl(SCREW_TAP_R, 0, 12, x, z)
+    for x, z in GRIP_SCREWS:
+        body -= ycyl(SCREW_CLEAR_R, -w - 1, 0, x, z)
+        body -= ycyl(SCREW_HEAD_R, -w - 1, -11.0, x, z)
+        body -= ycyl(SCREW_TAP_R, 0, 11, x, z)
     return body
-
-
-def split_grip(full):
-    left = full & box(-200, 200, 0, 100, -300, 100)
-    right = full & box(-200, 200, -100, 0, -300, 100)
-    return left, right
 
 
 # --------------------------------------------------------------------------
@@ -363,225 +373,223 @@ def chamber_centres():
 
 
 def recoil_shield():
-    r = DRUM_R + 2.0
-    sk = Pos(0, AXLE_Z) * Circle(r)
+    """Fixed plate behind the drum.  It keeps the shells in; they load through
+    the gate on the right-hand side."""
+    sk = Pos(0, AXLE_Z) * Circle(DRUM_R + 0.6)
     sk &= rect(-100, 100, AXLE_Z - 100, STRAP_BOT_Z - 0.2)
     sk -= Pos(0, AXLE_Z) * Rectangle(12.4, 12.4)
-    # Loading gate on the right-hand side.
-    sk -= Pos(-DRUM_PITCH_R, AXLE_Z) * Circle(SHELL_RIM_R + 0.6)
-    sk -= rect(-100, -DRUM_PITCH_R, AXLE_Z - (SHELL_RIM_R + 0.6), AXLE_Z + (SHELL_RIM_R + 0.6))
+    gate = SHELL_R + 0.6
+    sk -= Pos(-DRUM_PITCH_R, AXLE_Z) * Circle(gate)
+    sk -= rect(-100, -DRUM_PITCH_R, AXLE_Z - gate, AXLE_Z + gate)
     return prism_yz(sk, SHIELD_X0, SHIELD_X1)
 
 
-def drum():
-    d = xcyl(DRUM_R, DRUM_X0, DRUM_X1, z=AXLE_Z)
-    d = chamfer(d.edges().filter_by(lambda e: e.length > 2 * math.pi * DRUM_R * 0.99), 1.5)
+def drum_core():
+    """Front flange, hub and the hex spigot the rear flange slides onto."""
+    front_x = DRUM_X1 - DRUM_FRONT_T
+    d = xcyl(DRUM_R, front_x, DRUM_X1, z=AXLE_Z)
+    d = chamfer(d.edges().filter_by(lambda e: abs(e.center().X - DRUM_X1) < 1e-6), 1.5)
+    d += xcyl(DRUM_HUB_R, DRUM_X0 + DRUM_REAR_T, front_x + 0.1, z=AXLE_Z)
+    hexagon = Pos(0, AXLE_Z) * RegularPolygon(DRUM_HEX_AF / 2, 6, major_radius=False)
+    d += prism_yz(hexagon, DRUM_X0, DRUM_X0 + DRUM_REAR_T + 0.1)
     d -= xcyl(ROD_R + SLIDE, DRUM_X0 - 1, DRUM_X1 + 1, z=AXLE_Z)
     for y, z in chamber_centres():
-        d -= xcyl(CHAMBER_R, DRUM_X0 - 1, DRUM_X1 - DRUM_FRONT_WALL, y, z)
-        d -= xcyl(SHELL_RIM_R + 0.35, DRUM_X0 - 1, DRUM_X0 + SHELL_RIM_T + 0.2, y, z)
-        d -= xcyl(7.0, DRUM_X1 - DRUM_FRONT_WALL - 1, DRUM_X1 + 1, y, z)
-    # Flutes between chambers.  They open at the front face (the print bed)
-    # and close with a 45 degree cone so no support is needed.
-    flute_r, flute_c = 9.0, DRUM_R + 5.5
+        d -= xcyl(SHELL_R + 0.3, front_x - 1, DRUM_X1 - 4, y, z)     # seat for the shell nose
+        d -= xcyl(6.5, DRUM_X1 - 5, DRUM_X1 + 1, y, z)               # window onto the slug
+    # Ring of dimples between the windows, like the engraved band on the prop.
     for k in range(N_CHAMBERS):
         a = math.radians((k + 0.5) * 360 / N_CHAMBERS)
-        y, z = flute_c * math.sin(a), AXLE_Z + flute_c * math.cos(a)
-        d -= xcyl(flute_r, DRUM_X0 + 30, DRUM_X1 + 1, y, z)
-        d -= xcone(0, flute_r, DRUM_X0 + 30 - flute_r, DRUM_X0 + 30, y, z)
+        r = DRUM_PITCH_R + 4.0
+        d -= xcyl(2.2, DRUM_X1 - 1.0, DRUM_X1 + 1, r * math.sin(a), AXLE_Z + r * math.cos(a))
     return d
+
+
+def drum_rear():
+    sk = Pos(0, AXLE_Z) * (Circle(DRUM_R) - RegularPolygon(DRUM_HEX_AF / 2 + FIT, 6, major_radius=False))
+    for y, z in chamber_centres():
+        sk -= Pos(y, z) * Circle(SHELL_R + 0.3)
+    return prism_yz(sk, DRUM_X0, DRUM_X0 + DRUM_REAR_T)
 
 
 def shell():
     """Dummy shell, modelled in the top chamber."""
-    x0 = DRUM_X0
-    x1 = DRUM_X1 - DRUM_FRONT_WALL - 0.2
-    s = xcyl(SHELL_RIM_R, x0, x0 + SHELL_RIM_T) + xcyl(SHELL_R, x0 + SHELL_RIM_T - 0.1, x1)
-    front_edge = s.edges().filter_by(lambda e: abs(e.center().X - x1) < 1e-3)
-    s = chamfer(front_edge, 1.5)
-    # Engraved cross on the slug nose, primer ring on the base.
+    x0, x1 = DRUM_X0 + 0.2, DRUM_X1 - 4.2
+    s = xcyl(SHELL_R, x0, x1)
+    s = chamfer(s.edges().filter_by(lambda e: abs(e.center().X - x1) < 1e-3), 1.2)
+    for gx in (20, 44):                                            # two engraved bands
+        s -= xcyl(SHELL_R + 1, gx, gx + 1.0) - xcyl(SHELL_R - 0.5, gx - 1, gx + 2)
     nose = Plane(origin=(x1, 0, 0), x_dir=(0, 1, 0), z_dir=(1, 0, 0))
     s -= extrude(nose * (Rot(0, 0, 90) * cross_sketch(9, 6.5, 1.8)), amount=-0.8)
-    s -= xcyl(3.4, x0 - 1, x0 + 0.5) - xcyl(2.6, x0 - 1, x0 + 0.5)
+    s -= xcyl(3.4, x0 - 1, x0 + 0.5) - xcyl(2.6, x0 - 1, x0 + 0.5)  # primer ring
     return s
 
 
 # --------------------------------------------------------------------------
-# Barrel and shroud
+# Crucifix barrel
 # --------------------------------------------------------------------------
 
 
-def barrel_rear():
-    return xcyl(BARREL_R, BARREL_X0, BARREL_SPLIT_X) - xcyl(ROD_R + FIT + 0.05, BARREL_X0 - 1, BARREL_SPLIT_X + 1)
+def barrel_sleeve(length, rod_z, slot_centres, slot_len, text_right=None, text_left=None, text_size=6.0):
+    """One octagonal sleeve, built along +X from x=0.
 
+    The x=0 end has a mortise and sits on the print bed.  The far end closes
+    over a 45 degree shoulder and carries a tenon, so the sleeve prints
+    upright without supports.  Slots go through the two side faces; text is
+    engraved on the two upper diagonal faces.
+    """
+    body = oct_x(OCT_AF, 0, length) + oct_x(TENON_AF, length - 0.1, length + TENON_LEN)
+    cav_top = length - 8.4
+    body -= oct_x(TENON_AF + 2 * FIT, -1, MORTISE_DEPTH)
+    body -= xcyl(CAV_R, MORTISE_DEPTH - 0.1, cav_top)
+    body -= xcone(CAV_R, 9.0, cav_top, cav_top + (CAV_R - 9.0))
+    body -= xcyl(ROD_R + FIT + 0.05, cav_top, length + TENON_LEN + 1, z=rod_z)
+    for gx in (5.0, length - 6.2):                                 # border grooves
+        body -= oct_x(OCT_AF + 2, gx, gx + 1.2) - oct_x(OCT_AF - 1.2, gx - 1, gx + 2.2)
 
-def barrel_front():
-    b = xcyl(BARREL_R, BARREL_SPLIT_X, MUZZLE_X)
-    b = chamfer(b.edges().filter_by(lambda e: abs(e.center().X - MUZZLE_X) < 1e-3), 1.0)
-    b -= xcyl(ROD_R + FIT + 0.05, BARREL_SPLIT_X - 1, SPINE_X1)
-    b -= xcone(ROD_R + FIT + 0.05, 0, SPINE_X1, SPINE_X1 + 4)   # self-supporting end of the rod pocket
-    b -= xcyl(8.0, MUZZLE_X - 6, MUZZLE_X + 1)                   # shallow recess that reads as a bore
-    return b
+    slot = extrude(Pos(0, 0, 9) * SlotOverall(slot_len, 6.0), amount=12)
+    for cx in slot_centres:
+        for ang in (90, 270):
+            body -= Pos(cx, 0, 0) * Rot(ang, 0, 0) * slot
 
-
-def _vent_cutters(stations, staggered):
-    """Cross-shaped vents: rows on both sides plus two lower diagonal rows."""
-    cross = cross_sketch(26, 14, 5, gusset=2.5)
-    proto = extrude(Pos(0, 0, SHROUD_R_IN - 4) * cross, amount=10)  # pierces the wall at the top
-    out = []
-    for ang in (90, 270):
-        for x in stations:
-            out.append(Pos(x, 0, 0) * Rot(ang, 0, 0) * proto)
-    for ang in (142, 218):
-        for x in staggered:
-            out.append(Pos(x, 0, 0) * Rot(ang, 0, 0) * proto)
-    return out
-
-
-def _shroud_segment(x0, x1, cap_x1):
-    """Tube from x0 to x1 with the top rib, a decorative band at x1 and an
-    internal 45 degree shoulder that centres the barrel.  cap_x1 is where the
-    reduced-diameter nose beyond the band ends."""
-    rib = box(x0, x1, -RIB_HALF_W, RIB_HALF_W, SHROUD_R_IN - 0.5, RIB_TOP_Z)
-    seg = xcyl(SHROUD_R_OUT, x0, x1) + rib
-    seg += xcyl(BAND_R, x1 - 4, x1) + xcone(SHROUD_R_OUT, BAND_R, x1 - 6, x1 - 4)
-    seg -= xcyl(SHROUD_R_IN, x0 - 1, x1 - 10.3)
-    shoulder = SHROUD_R_IN - (BARREL_R + 0.2)
-    seg -= xcone(SHROUD_R_IN, BARREL_R + 0.2, x1 - 10.3, x1 - 10.3 + shoulder)
-    seg += xcyl(SPIGOT_R, x1, cap_x1)
-    seg -= xcyl(BARREL_R + 0.2, x0 - 1, cap_x1 + 1)
-    # Key notch at the rear end.
-    seg -= box(x0 - 1, x0 + 4.4, -3.05, 3.05, -(SHROUD_R_OUT + 1), -(SHROUD_R_IN - 1.5))
-    return seg
-
-
-def shroud_rear():
-    x0, x1 = SHROUD_X0, SHROUD_SPLIT_X
-    seg = _shroud_segment(x0, x1, x1 + SPIGOT_LEN)
-    # Key tab on the spigot for the front segment.
-    seg += box(x1, x1 + 4, -2.8, 2.8, -(SHROUD_R_OUT - 0.2), -(SPIGOT_R - 0.5))
-    for c in _vent_cutters([x0 + 24 + 34 * k for k in range(4)], [x0 + 41 + 34 * k for k in range(3)]):
-        seg -= c
-    return seg
-
-
-def shroud_front():
-    x0, x1 = SHROUD_SPLIT_X, SHROUD_X1
-    seg = _shroud_segment(x0, x1, x1 + 4)
-    nose_edge = seg.edges().filter_by(
-        lambda e: abs(e.center().X - (x1 + 4)) < 1e-3 and e.length > 2 * math.pi * (SPIGOT_R - 0.5)
+    s = math.sqrt(0.5)
+    half = OCT_AF / 2
+    usable = length - MORTISE_DEPTH - 18
+    mid = (MORTISE_DEPTH + 4 + length - 14) / 2
+    faces = (
+        (text_right, Plane(origin=(mid, -half * s, half * s), x_dir=(1, 0, 0), z_dir=(0, -s, s))),
+        (text_left, Plane(origin=(mid, half * s, half * s), x_dir=(-1, 0, 0), z_dir=(0, s, s))),
     )
-    seg = chamfer(nose_edge, 1.5)
-    for c in _vent_cutters([x0 + 24 + 34 * k for k in range(4)], [x0 + 41 + 34 * k for k in range(3)]):
-        seg -= c
-    # Notch for the crossbar; chamfered ends keep it printable upright.
-    notch = poly((436.3, RIB_TOP_Z + 0.2), (440, 22.5), (452, 22.5), (455.7, RIB_TOP_Z + 0.2))
-    seg -= prism_xz(notch, -RIB_HALF_W - 1, RIB_HALF_W + 1)
-    # Slot for the front sight.
-    seg -= box(485.85, 489.15, -1.95, 1.95, 22.0, RIB_TOP_Z + 1)
-    return seg
+    for label, plane in faces:
+        if label:
+            body -= extrude(plane * fitted_text(label, usable, text_size), amount=-TEXT_DEPTH)
+    return body
 
 
-def crossbar():
-    sk = Rectangle(11.6, 96) + Pos(0, 48) * Circle(8) + Pos(0, -48) * Circle(8)
-    bar = extrude(Pos(446, 0, 22.5) * sk, amount=7)
-    top = bar.edges().filter_by(lambda e: abs(e.center().Z - 29.5) < 1e-3)
-    return chamfer(top, 1.2)
+def barrel_tail():
+    sleeve = barrel_sleeve(TAIL_LEN, SPINE_Z, [40, 80, 120, 160], 30.0, TEXT_TAIL_RIGHT, TEXT_TAIL_LEFT, 6.0)
+    return Pos(RECV_X1, 0, 0) * sleeve
 
 
-def front_sight():
-    sk = rect(-1.75, 1.75, 22.2, 44) + rect(-6, 6, 35, 38.5)
-    return prism_yz(sk, 486, 489)
+def barrel_head():
+    """Hub to muzzle.  Built muzzle-end first so the muzzle sits on the bed."""
+    # After the half turn below, the sleeve's right face is on the prop's left.
+    sleeve = barrel_sleeve(HEAD_LEN, SPINE_Z, [46], 38.0, TEXT_HEAD_LEFT, TEXT_HEAD_RIGHT, 5.2)
+    sleeve -= box(14.0, 17.3, -1.95, 1.95, 12, OCT_AF / 2 + 1)      # slot for the front sight
+    return Pos(HUB_X1 + HEAD_LEN, 0, 0) * Rot(0, 0, 180) * sleeve
 
 
-def muzzle_crown():
-    x0, x1 = 530.0, MUZZLE_X
-    c = xcyl(15.0, x0, x1) + xcyl(16.5, x0 + 4, x0 + 8)
-    c += xcone(15.0, 16.5, x0 + 2.5, x0 + 4) + xcone(16.5, 15.0, x0 + 8, x0 + 9.5)
-    c = chamfer(c.edges().filter_by(lambda e: abs(e.center().X - x1) < 1e-3), 1.2)
-    c -= xcyl(BARREL_R + FIT, x0 - 1, x1 + 1)
-    cross = cross_sketch(15, 9, 3.2, gusset=1.2)
-    proto = extrude(Pos(0, 0, BARREL_R - 2) * cross, amount=10)
-    for ang in (0, 90, 180, 270):
-        c -= Pos(x1 - 10.5, 0, 0) * Rot(ang, 0, 0) * proto
+def barrel_arm():
+    """The right-hand arm of the cross.  The left one is the same part."""
+    sleeve = barrel_sleeve(ARM_LEN, CROSS_Z, [26, 46], 14.0)
+    return Pos(HUB_XC, -(HUB_HALF_Y + ARM_LEN), 0) * Rot(0, 0, 90) * sleeve
+
+
+def cross_hub():
+    """Where the barrel and the arms meet: four mortises and two rod holes."""
+    hub = oct_x(OCT_AF, HUB_X0, HUB_X1) + oct_y(OCT_AF, -HUB_HALF_Y, HUB_HALF_Y, HUB_XC)
+    af = TENON_AF + 2 * FIT
+    hub -= oct_x(af, HUB_X0 - 1, HUB_X0 + MORTISE_DEPTH) + oct_x(af, HUB_X1 - MORTISE_DEPTH, HUB_X1 + 1)
+    hub -= oct_y(af, -HUB_HALF_Y - 1, -HUB_HALF_Y + MORTISE_DEPTH, HUB_XC)
+    hub -= oct_y(af, HUB_HALF_Y - MORTISE_DEPTH, HUB_HALF_Y + 1, HUB_XC)
+    hub -= xcyl(ROD_R + FIT + 0.05, HUB_X0 - 1, HUB_X1 + 1, z=SPINE_Z)
+    hub -= ycyl(ROD_R + FIT + 0.05, -HUB_HALF_Y - 1, HUB_HALF_Y + 1, HUB_XC, CROSS_Z)
+    return hub
+
+
+def end_cap(rod_z, bore):
+    """Ringed round cap, built along +X: the disc spans x -CAP_LEN..0 and the
+    tenon 0..TENON_LEN.  Prints with the ringed face on the bed."""
+    c = xcyl(CAP_R, -CAP_LEN, 0)
+    c = chamfer(c.edges().filter_by(lambda e: abs(e.center().X + CAP_LEN) < 1e-6), 1.5)
+    c += oct_x(TENON_AF, -0.1, TENON_LEN)
+    rings = (11.5, 15.5) if bore else (5.0, 10.0, 15.0)
+    for r in rings:
+        c -= xcyl(r + 0.7, -CAP_LEN - 1, -CAP_LEN + 0.8) - xcyl(r - 0.7, -CAP_LEN - 1, -CAP_LEN + 0.8)
+    if bore:
+        c -= xcyl(8.0, -CAP_LEN - 1, -CAP_LEN + 7)                  # shallow recess that reads as a bore
+    c -= xcyl(ROD_R + FIT + 0.05, -2.0, TENON_LEN + 1, z=rod_z)
     return c
 
 
+def muzzle_cap():
+    return Pos(HUB_X1 + HEAD_LEN, 0, 0) * Rot(0, 0, 180) * end_cap(SPINE_Z, bore=True)
+
+
+def arm_cap():
+    return Pos(HUB_XC, -(HUB_HALF_Y + ARM_LEN), 0) * Rot(0, 0, 90) * end_cap(CROSS_Z, bore=False)
+
+
+def front_sight():
+    """Small upright cross that plugs into the top of the barrel at the muzzle."""
+    x1 = HUB_X1 + HEAD_LEN - 14.0
+    half = OCT_AF / 2
+    sk = rect(-1.75, 1.75, half - 2.5, half + 21) + rect(-6, 6, half + 12, half + 15.5)
+    return prism_yz(sk, x1 - 3.0, x1)
+
+
 # --------------------------------------------------------------------------
-# Torch, fore grip and Dragon's Breath
+# Torch, Dragon's Breath and the twisted rod
 # --------------------------------------------------------------------------
 
 
 def torch():
     x0, x1, z = TORCH_X0, TORCH_X1, TORCH_Z
-    t = xcyl(13, x0, x0 + 12, z=z) + xcyl(12, x0 + 11, x1 - 27, z=z)
-    t += xcone(12, 15, x1 - 27, x1 - 24, z=z) + xcyl(15, x1 - 24, x1, z=z)
-    for gx in (x0 + 3, x0 + 6, x0 + 9):                       # grip rings on the tail cap
-        t -= xcyl(14, gx, gx + 1.2, z=z) - xcyl(12.4, gx - 1, gx + 2.2, z=z)
-    t -= xcyl(12.5, x1 - 2.5, x1 + 1, z=z)                     # lens seat
-    t -= xcone(4, 12.5, x1 - 12, x1 - 2.5, z=z)                # reflector
-    t -= box(x0 - 1, x1 + 1, -(RIB_HALF_W + 0.2), RIB_HALF_W + 0.2, 0, RIB_TOP_Z + 0.2)  # sits on the rib
+    fat0, fat1 = PEDESTAL_X0 - 6, PEDESTAL_X1 + 6
+    t = xcyl(15, x0, x0 + 12, z=z) + xcyl(13, x0 + 11, fat0 - 6, z=z)
+    t += xcone(13, 19, fat0 - 6, fat0, z=z) + xcyl(19, fat0, fat1, z=z) + xcone(19, 13, fat1, fat1 + 6, z=z)
+    t += xcyl(13, fat1 + 6, x1 - 24, z=z)
+    t += xcone(13, 20, x1 - 24, x1 - 10, z=z) + xcyl(20, x1 - 10, x1, z=z)      # flared bell
+    bands = ((x0 + 3, 15), (x0 + 6.5, 15), (fat0 - 14, 13), (fat1 + 12, 13), (x1 - 6, 20))
+    for gx, r_here in bands:                                                     # engraved bands
+        t -= xcyl(22, gx, gx + 1.2, z=z) - xcyl(r_here - 0.6, gx - 1, gx + 2.2, z=z)
+    t -= xcyl(17.5, x1 - 4, x1 + 1, z=z)                                         # lens seat
+    t -= xcone(6, 17.5, x1 - 16, x1 - 4, z=z)                                    # reflector
+    # Cross engraved on each side of the wide middle section.
+    skin = xcyl(20, fat0, fat1, z=z) - xcyl(19 - 0.8, fat0 - 1, fat1 + 1, z=z)
+    mark = extrude(Pos(0, 0, 5) * cross_pattee(24), amount=20)
+    for ang in (90, 270):
+        t -= skin & (Pos((fat0 + fat1) / 2, 0, z) * Rot(ang, 0, 0) * mark)
     return t
 
 
-def foregrip_collar():
-    ring = Circle(SHROUD_R_OUT + 4.5) - Circle(SHROUD_R_OUT + 0.2)
-    ring -= rect(-(RIB_HALF_W + 0.3), RIB_HALF_W + 0.3, 0, 40)
-    tenon = poly((-6, -23), (6, -23), (9, -30.5), (-9, -30.5))
-    return prism_yz(ring + tenon - Circle(SHROUD_R_OUT + 0.2), FOREGRIP_X0, FOREGRIP_X1)
-
-
-def foregrip_handle():
-    xc = (FOREGRIP_X0 + FOREGRIP_X1) / 2
-    top_z, bot_z = -25.0, -125.0
-    body = extrude(Pos(xc, 0, bot_z + 8) * RectangleRounded(34, 28, 10), amount=top_z - bot_z - 8)
-    body += loft([
-        Pos(xc, 0, bot_z) * RectangleRounded(38, 32, 12),
-        Pos(xc, 0, bot_z + 8) * RectangleRounded(34, 28, 10),
-    ])
-    for z in (-50, -72, -94):
-        body -= ycyl(9, -30, 30, xc + 17 + 5.6, z)
-    slot = poly((-6.25, -23), (6.25, -23), (9.37, -30.8), (-9.37, -30.8))
-    body -= prism_yz(slot, FOREGRIP_X0 - 5, FOREGRIP_X1 + 5)
-    return body
+def torch_pedestal():
+    top_flat = OCT_AF / 2
+    p = box(PEDESTAL_X0, PEDESTAL_X1, -10, 10, top_flat, TORCH_Z - 16)
+    p = chamfer(p.edges().filter_by(lambda e: abs(e.center().Z - top_flat) < 1e-6), 3.0)
+    return p - xcyl(19 + FIT, PEDESTAL_X0 - 1, PEDESTAL_X1 + 1, z=TORCH_Z)
 
 
 def dragon_tube():
     x0, x1, z, r = DRAGON_X0, DRAGON_X1, DRAGON_Z, DRAGON_R
-    t = xcyl(13, x0, x0 + 8, z=z) + xcyl(r, x0 + 7, x1 - 32, z=z)
-    t += xcone(r, 7, x1 - 32, x1 - 24, z=z) + xcyl(7, x1 - 24, x1 - 6, z=z)
-    t += xcone(7, 8.5, x1 - 7.5, x1 - 6, z=z) + xcyl(8.5, x1 - 6, x1, z=z)
-    for gx in (x0 + 2, x0 + 5):
-        t -= xcyl(14, gx, gx + 1.2, z=z) - xcyl(12.3, gx - 1, gx + 2.2, z=z)
-    t -= xcyl(4.5, x1 - 8, x1 + 1, z=z)                        # nozzle recess
+    crown0 = x1 - 12
+    t = xcyl(r, x0, x1, z=z)
+    for bx in (x0 + 4, crown0 - 22):                                             # raised bands
+        t += xcyl(r + 1.5, bx, bx + 6, z=z)
+        t += xcone(r, r + 1.5, bx - 1.5, bx, z=z) + xcone(r + 1.5, r, bx + 6, bx + 7.5, z=z)
+    t -= xcyl(TWIST_SOCKET_R, x0 - 1, x0 + 9, z=z)                               # twisted rod socket
+    t -= xcyl(8.5, crown0 - 4, x1 + 1, z=z)                                      # nozzle
+    # Crown: eight pointed teeth around the nozzle.
+    tooth_gap = extrude(Pos(0, 0, 4) * poly((crown0 + 2, 0), (x1 + 1, 4.9), (x1 + 1, -4.9)), amount=12)
+    for k in range(8):
+        t -= Pos(0, 0, z) * Rot(k * 45, 0, 0) * tooth_gap
     return t
 
 
-def dragon_cradle(x0):
-    """Double C-clip: snaps onto the shroud above and holds the tube below."""
-    def c_clip(centre_z, r_in, wall, open_dir, half_open_deg):
-        ring = Pos(0, centre_z) * (Circle(r_in + wall) - Circle(r_in))
-        a = math.radians(half_open_deg)
-        far = 80
-        wedge = poly(
-            (0, centre_z),
-            (far * math.sin(a), centre_z + open_dir * far * math.cos(a)),
-            (0, centre_z + open_dir * far * 1.6),
-            (-far * math.sin(a), centre_z + open_dir * far * math.cos(a)),
-        )
-        ring -= wedge
-        rm = r_in + wall / 2
-        for s in (-1, 1):  # rounded lead-in on the tips
-            ring += Pos(s * rm * math.sin(a), centre_z + open_dir * rm * math.cos(a)) * Circle(wall / 2)
-        return ring
+def dragon_mount():
+    """Saddle between the underside of the hub and the Dragon's Breath tube."""
+    m = box(HUB_XC - 12, HUB_XC + 12, -7, 7, DRAGON_Z + 4, -OCT_AF / 2)
+    return m - xcyl(DRAGON_R + FIT, HUB_XC - 13, HUB_XC + 13, z=DRAGON_Z)
 
-    upper = c_clip(0, SHROUD_R_OUT + 0.1, 3.0, +1, 65)
-    lower = c_clip(DRAGON_Z, DRAGON_R + 0.1, 3.0, -1, 60)
-    web = rect(-9, 9, DRAGON_Z + DRAGON_R, -SHROUD_R_OUT)
-    sk = upper + lower + web
-    sk -= Circle(SHROUD_R_OUT + 0.1)
-    sk -= Pos(0, DRAGON_Z) * Circle(DRAGON_R + 0.1)
-    return prism_yz(sk, x0, x0 + 14)
+
+def twisted_rod():
+    """Two strands twisted together.  Its plain ends plug into round sockets
+    in the receiver and in the Dragon's Breath tube."""
+    x0, x1 = 95.0, DRAGON_X0 + 8.5
+    length = x1 - x0
+    strands = Pos(2.4, 0) * Circle(3.3) + Pos(-2.4, 0) * Circle(3.3)
+    half_turns = round(length / 20)   # a whole number of half turns keeps both end faces aligned
+    twist = Solid.extrude_linear_with_rotation(strands.faces()[0], (0, 0, 0), (0, 0, length), 180 * half_turns)
+    return Part() + Pos(x0, 0, DRAGON_Z) * Rot(0, 90, 0) * twist
 
 
 # --------------------------------------------------------------------------
@@ -590,11 +598,16 @@ def dragon_cradle(x0):
 
 
 def spine_rod():
-    return xcyl(ROD_R, SPINE_X0 + 0.5, SPINE_X1 - 0.5)
+    return xcyl(ROD_R, 84.5, HUB_X1 + HEAD_LEN + 1.5, z=SPINE_Z)
+
+
+def cross_rod():
+    reach = HUB_HALF_Y + ARM_LEN + 1.5
+    return ycyl(ROD_R, -reach, reach, HUB_XC, CROSS_Z)
 
 
 def axle_rod():
-    return xcyl(ROD_R, REAR_BLOCK_X1 - 9.5, BAY_X1 + 9.5, z=AXLE_Z)
+    return xcyl(ROD_R, -14.5, 75.5, z=AXLE_Z)
 
 
 # --------------------------------------------------------------------------
@@ -603,8 +616,9 @@ def axle_rod():
 
 REAR_DOWN = Rot(0, -90, 0)   # +X of the prop points up on the bed
 FRONT_DOWN = Rot(0, 90, 0)   # -X of the prop points up on the bed
-LEFT_HALF = Rot(90, 0, 0)    # split face on the bed, outer (+Y) face up
-RIGHT_HALF = Rot(-90, 0, 0)  # split face on the bed, outer (-Y) face up
+LEFT_HALF = Rot(90, 0, 0)    # +Y of the prop points up on the bed
+RIGHT_HALF = Rot(-90, 0, 0)  # -Y of the prop points up on the bed
+UPSIDE_DOWN = Rot(180, 0, 0)
 AS_IS = Rot(0, 0, 0)
 
 
@@ -614,62 +628,79 @@ class PropPart:
     solid: Part
     print_rot: Location = AS_IS
     color: tuple = BRASS
-    filament: str = "brass / gold"
+    filament: str = "brass"
     printed: bool = True
     placements: list = field(default_factory=lambda: [Location()])
-    explode: tuple = (0.0, 0.0, 0.0)   # offset direction * distance for the exploded view
+    explode: tuple = (0.0, 0.0, 0.0)        # exploded-view offset, same for every copy
+    explode_local: tuple = (0.0, 0.0, 0.0)  # extra offset that turns with each copy's placement
     notes: str = ""
 
     @property
     def qty(self):
         return len(self.placements)
 
+    def explode_for(self, index):
+        """Exploded-view offset of one copy of the part."""
+        trsf = self.placements[index].wrapped.Transformation()
+        turned = [sum(trsf.Value(r, c) * self.explode_local[c - 1] for c in (1, 2, 3)) for r in (1, 2, 3)]
+        return tuple(base + extra for base, extra in zip(self.explode, turned))
+
 
 def build_parts():
-    frame_l, frame_r = split_frame(frame_full())
-    grip_l, grip_r = split_grip(grip_full())
+    recv_l, recv_r = split_halves(receiver_full())
+    grip_l, grip_r = split_halves(grip_full())
     shell_spots = [about_axle(-k * 360 / N_CHAMBERS) for k in range(N_CHAMBERS)]
-    parts = [
-        PropPart("frame_left", frame_l, LEFT_HALF, BRASS, explode=(0, 90, 0),
-                 notes="Split face on the bed, engraving up. No supports."),
-        PropPart("frame_right", frame_r, RIGHT_HALF, BRASS, explode=(0, -90, 0),
-                 notes="Split face on the bed, engraving up. No supports."),
-        PropPart("grip_left", grip_l, LEFT_HALF, WOOD, "wood / dark brown", explode=(-60, 30, -70),
-                 notes="Split face on the bed."),
-        PropPart("grip_right", grip_r, RIGHT_HALF, WOOD, "wood / dark brown", explode=(-60, -30, -70),
-                 notes="Split face on the bed."),
-        PropPart("trigger", trigger(), LEFT_HALF, STEEL, "black / steel", explode=(0, 0, -75),
+    both_arms = [Location(), Pos(HUB_XC, 0, 0) * Rot(0, 0, 180) * Pos(-HUB_XC, 0, 0)]
+    silver = "silver"
+    return [
+        PropPart("receiver_left", recv_l, LEFT_HALF, explode=(0, 85, 0),
+                 notes="Split face on the bed, engraving up."),
+        PropPart("receiver_right", recv_r, RIGHT_HALF, explode=(0, -85, 0),
+                 notes="Split face on the bed, engraving up."),
+        PropPart("grip_left", grip_l, LEFT_HALF, explode=(-175, 30, -10),
+                 notes="Split face on the bed, scrollwork up."),
+        PropPart("grip_right", grip_r, RIGHT_HALF, explode=(-175, -30, -10),
+                 notes="Split face on the bed, scrollwork up."),
+        PropPart("trigger", trigger(), LEFT_HALF, SILVER, silver, explode=(0, 0, -60),
                  notes="Flat on its side."),
-        PropPart("recoil_shield", recoil_shield(), REAR_DOWN, STEEL, "black / steel", explode=(-35, 0, 0),
+        PropPart("recoil_shield", recoil_shield(), REAR_DOWN, SILVER, silver, explode=(-50, 0, 0),
                  notes="Flat."),
-        PropPart("drum", drum(), FRONT_DOWN, STEEL, "black / steel", explode=(0, 0, 0),
-                 notes="Front face on the bed so the chambers open upward."),
-        PropPart("shell", shell(), REAR_DOWN, GOLD, "gold", placements=shell_spots, explode=(-120, 0, 0),
-                 notes="Rim on the bed. Print 12."),
-        PropPart("barrel_rear", barrel_rear(), REAR_DOWN, STEEL, "black / steel", explode=(60, 0, 140),
-                 notes="Upright, use a brim."),
-        PropPart("barrel_front", barrel_front(), REAR_DOWN, STEEL, "black / steel", explode=(150, 0, 140),
-                 notes="Upright, muzzle up, use a brim."),
-        PropPart("shroud_rear", shroud_rear(), REAR_DOWN, BRASS, explode=(60, 0, 0),
-                 notes="Upright, frame end on the bed."),
-        PropPart("shroud_front", shroud_front(), REAR_DOWN, BRASS, explode=(150, 0, 0),
-                 notes="Upright, banded nose up."),
-        PropPart("crossbar", crossbar(), AS_IS, BRASS, explode=(150, 0, 45), notes="Flat."),
-        PropPart("front_sight", front_sight(), FRONT_DOWN, BRASS, explode=(150, 0, 75), notes="Flat on its back."),
-        PropPart("muzzle_crown", muzzle_crown(), REAR_DOWN, BRASS, explode=(240, 0, 0), notes="Upright."),
-        PropPart("torch", torch(), REAR_DOWN, STEEL, "black / steel", explode=(60, 0, 55),
-                 notes="Upright, tail cap on the bed."),
-        PropPart("foregrip_collar", foregrip_collar(), REAR_DOWN, BRASS, explode=(60, 0, -35), notes="Ring flat on the bed."),
-        PropPart("foregrip_handle", foregrip_handle(), AS_IS, WOOD, "wood / dark brown", explode=(60, 0, -95),
-                 notes="Upright, pommel on the bed."),
-        PropPart("dragon_tube", dragon_tube(), REAR_DOWN, GOLD, "gold", explode=(150, 0, -110),
-                 notes="Upright, knurled cap on the bed, use a brim."),
-        PropPart("dragon_cradle", dragon_cradle(316), REAR_DOWN, BRASS,
-                 placements=[Location(), Pos(130, 0, 0)], explode=(150, 0, -50),
-                 notes="Flat. Print 2."),
-        PropPart("spine_rod", spine_rod(), AS_IS, HARDWARE, printed=False, explode=(105, 0, 190),
-                 notes="8 mm rod, 380 mm long."),
-        PropPart("axle_rod", axle_rod(), AS_IS, HARDWARE, printed=False, explode=(0, 0, -140),
-                 notes="8 mm rod, 88 mm long."),
+        PropPart("drum_core", drum_core(), FRONT_DOWN, SILVER, silver, explode=(0, 0, 0),
+                 notes="Front flange on the bed, hub and hex spigot up."),
+        PropPart("drum_rear", drum_rear(), REAR_DOWN, SILVER, silver, explode=(-25, 0, 0),
+                 notes="Flat."),
+        PropPart("shell", shell(), REAR_DOWN, SILVER, silver, placements=shell_spots, explode=(-125, 0, 0),
+                 notes="Upright, base on the bed. Print 12."),
+        PropPart("barrel_tail", barrel_tail(), REAR_DOWN, explode=(60, 0, 0),
+                 notes="Upright, mortise end on the bed. Use a brim."),
+        PropPart("cross_hub", cross_hub(), AS_IS, explode=(135, 0, 0),
+                 notes="As it sits on the prop, bottom flat on the bed."),
+        PropPart("barrel_head", barrel_head(), FRONT_DOWN, explode=(215, 0, 0),
+                 notes="Upright, muzzle end on the bed."),
+        PropPart("barrel_arm", barrel_arm(), LEFT_HALF, placements=both_arms, explode=(135, 0, 0),
+                 explode_local=(0, -55, 0), notes="Upright, cap end on the bed. Print 2."),
+        PropPart("arm_cap", arm_cap(), LEFT_HALF, placements=both_arms, explode=(135, 0, 0),
+                 explode_local=(0, -100, 0), notes="Ringed face on the bed. Print 2."),
+        PropPart("muzzle_cap", muzzle_cap(), FRONT_DOWN, explode=(275, 0, 0),
+                 notes="Ringed face on the bed."),
+        PropPart("front_sight", front_sight(), FRONT_DOWN, explode=(215, 0, 45), notes="Flat on its back."),
+        PropPart("torch", torch(), REAR_DOWN, explode=(60, 0, 80),
+                 notes="Upright, flared bell up. Use a brim."),
+        PropPart("torch_pedestal", torch_pedestal(), AS_IS, explode=(60, 0, 35), notes="Flat base on the bed."),
+        PropPart("dragon_tube", dragon_tube(), REAR_DOWN, explode=(175, 0, -75),
+                 notes="Upright, crown up."),
+        PropPart("dragon_mount", dragon_mount(), UPSIDE_DOWN, explode=(135, 0, -35),
+                 notes="Flat face on the bed, cradle up."),
+        PropPart("twisted_rod", twisted_rod(), REAR_DOWN, explode=(60, 0, -65),
+                 notes="Upright. Use a brim and slow the print down."),
+        PropPart("spine_rod", spine_rod(), AS_IS, HARDWARE, printed=False, explode=(140, 0, 150),
+                 notes="8 mm rod, 345 mm long."),
+        PropPart("cross_rod", cross_rod(), AS_IS, HARDWARE, printed=False, explode=(135, 0, -150),
+                 notes="8 mm rod, 203 mm long."),
+        PropPart("axle_rod", axle_rod(), AS_IS, HARDWARE, printed=False, explode=(0, 0, -150),
+                 notes="8 mm rod, 90 mm long."),
     ]
-    return parts
+
+
+# Parts that turn together when the drum is spun; used by the motion check.
+DRUM_PARTS = ("drum_core", "drum_rear", "shell")

@@ -41,10 +41,10 @@ def print_oriented(part: model.PropPart):
 def placed(part: model.PropPart, exploded=False):
     """The part's solids in assembled position, or pushed apart for the exploded view."""
     out = []
-    for loc in part.placements:
+    for i, loc in enumerate(part.placements):
         s = loc * part.solid
         if exploded:
-            s = Pos(*part.explode) * s
+            s = Pos(*part.explode_for(i)) * s
         out.append(s)
     return out
 
@@ -73,16 +73,26 @@ def check_parts(parts):
     return ok, rows
 
 
-def check_interference(parts, tol_mm3=1.0):
-    """No two parts may occupy the same space in the assembled prop."""
+def check_interference(parts, drum_angle=0.0, tol_mm3=1.0):
+    """No two parts may occupy the same space in the assembled prop.
+
+    With drum_angle set, the drum and its shells are turned by that many
+    degrees first and only pairs involving them are tested, which shows the
+    drum can spin without touching anything.
+    """
     solids = []
     for p in parts:
+        turning = p.name in model.DRUM_PARTS
         for i, s in enumerate(placed(p)):
+            if drum_angle and turning:
+                s = model.about_axle(drum_angle) * s
             label = p.name if p.qty == 1 else f"{p.name}[{i}]"
-            solids.append((label, s, s.bounding_box()))
+            solids.append((label, s, s.bounding_box(), turning))
     clashes = []
-    for (na, a, ba), (nb, b, bb) in itertools.combinations(solids, 2):
+    for (na, a, ba, ta), (nb, b, bb, tb) in itertools.combinations(solids, 2):
         if na.split("[")[0] == nb.split("[")[0] == "shell":
+            continue
+        if drum_angle and ta == tb:
             continue
         if (ba.max.X < bb.min.X or bb.max.X < ba.min.X or ba.max.Y < bb.min.Y or bb.max.Y < ba.min.Y
                 or ba.max.Z < bb.min.Z or bb.max.Z < ba.min.Z):
@@ -97,9 +107,13 @@ def check_interference(parts, tol_mm3=1.0):
 def export_stls(parts):
     out = HERE / "stl"
     out.mkdir(exist_ok=True)
+    wanted = {f"{p.name}.stl" for p in parts if p.printed}
+    for stale in out.glob("*.stl"):          # drop files left over from parts that no longer exist
+        if stale.name not in wanted:
+            stale.unlink()
     for p in parts:
         if p.printed:
-            export_stl(print_oriented(p), str(out / f"{p.name}.stl"), tolerance=0.01, angular_tolerance=0.1)
+            export_stl(print_oriented(p), str(out / f"{p.name}.stl"), tolerance=0.02, angular_tolerance=0.15)
 
 
 def assembly_compound(parts, exploded=False):
@@ -124,7 +138,7 @@ def draw(shape, path, origin, look_at, up=(0, 0, 1), width_mm=260):
 
 def _mesh_payload(solid, crease_deg=32.0):
     """Tessellate for the web viewer: quantised positions and crease-aware normals, base64 encoded."""
-    verts, tris = solid.tessellate(0.06, 0.2)
+    verts, tris = solid.tessellate(0.12, 0.3)
     v = np.array([(p.X, p.Y, p.Z) for p in verts], dtype=np.float64)
     t = np.array(tris, dtype=np.int64)
     corners = v[t]                                             # (n, 3, 3)
@@ -176,7 +190,7 @@ def export_viewer(parts, rows):
             "color": [round(c, 3) for c in p.color],
             "filament": p.filament if p.printed else "hardware",
             "notes": p.notes,
-            "explode": list(p.explode),
+            "explodes": [[round(v, 3) for v in p.explode_for(i)] for i in range(p.qty)],
             "placements": [_matrix(loc) for loc in p.placements],
             "mesh": _mesh_payload(p.solid),
         }
@@ -233,6 +247,13 @@ def main():
     for a, b, vol in clashes:
         print(f"  CLASH {a} / {b}: {vol:.1f} mm3")
     print(f"interference check: {len(clashes)} clash(es)")
+    step = 360 / model.N_CHAMBERS
+    for angle in (step / 4, step / 2, step * 3 / 4):
+        moving = check_interference(parts, drum_angle=angle)
+        for a, b, vol in moving:
+            print(f"  CLASH with the drum turned {angle:.1f} deg: {a} / {b}: {vol:.1f} mm3")
+        clashes += moving
+    print(f"drum rotation check: {'clear' if not clashes else 'blocked'}")
 
     asm = assembly_compound(parts)
     bb = asm.bounding_box()
@@ -250,12 +271,12 @@ def main():
     if not args.no_draw:
         docs = HERE / "docs"
         docs.mkdir(exist_ok=True)
-        centre = (280, 0, -40)
+        centre = (150, 0, -40)
         t1 = time.time()
-        draw(asm, docs / "side.svg", (280, 2000, -40), centre)
-        draw(asm, docs / "top.svg", (280, 0, 2000), (280, 0, 0), up=(0, 1, 0))
-        draw(asm, docs / "iso.svg", (1400, 1300, 700), centre)
-        draw(assembly_compound(parts, exploded=True), docs / "exploded.svg", (1500, 1500, 800), centre)
+        draw(asm, docs / "side.svg", (150, -2000, -40), centre)
+        draw(asm, docs / "top.svg", (150, 0, 2000), (150, 0, 0), up=(0, 1, 0))
+        draw(asm, docs / "iso.svg", (1300, -1200, 700), centre)
+        draw(assembly_compound(parts, exploded=True), docs / "exploded.svg", (1400, -1400, 800), centre)
         print(f"wrote drawings in {time.time() - t1:.1f}s")
 
     if not ok or clashes:

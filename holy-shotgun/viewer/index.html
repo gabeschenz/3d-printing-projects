@@ -93,12 +93,12 @@
 <div class="wrap">
   <header>
     <h1>Holy Shotgun Print Kit</h1>
-    <p class="lede">A display prop in the spirit of the crucifix shotgun from Constantine, broken into parts that print without supports on a 220 mm bed. It cannot fire anything: the barrel is a sleeve over a solid rod and the shells are solid dummies.</p>
+    <p class="lede">A display prop modelled on the crucifix shotgun from Constantine, broken into parts that print without supports on a 220 mm bed. It cannot fire anything: the barrel is a hollow sleeve over a solid rod and the shells are solid dummies.</p>
     <ul class="facts">
-      <li><b id="f-size">594 x 126 x 214 mm</b> assembled</li>
-      <li><b id="f-types">20</b> printed part types</li>
-      <li><b id="f-pieces">32</b> printed pieces</li>
-      <li>about <b id="f-grams">785 g</b> of filament</li>
+      <li><b id="f-size">581 x 224 x 238 mm</b> assembled</li>
+      <li><b id="f-types">21</b> printed part types</li>
+      <li><b id="f-pieces">34</b> printed pieces</li>
+      <li>about <b id="f-grams">700 g</b> of filament</li>
     </ul>
   </header>
 
@@ -134,11 +134,10 @@
     <section>
       <h2>What you need besides filament</h2>
       <ul>
-        <li>8 mm rod, about 470 mm in total: one 380 mm length for the barrel spine and one 88 mm length for the drum axle. Aluminium tube, steel rod or a hardwood dowel all work.</li>
-        <li>8 M3 x 30 socket head screws for the receiver, grip tongue and trigger pivot. They thread straight into the plastic.</li>
-        <li>2 M3 x 20 socket head screws for the grip halves.</li>
-        <li>One ballpoint pen spring for the trigger return. Optional.</li>
-        <li>Super glue or epoxy for the barrel, shroud, torch and sights.</li>
+        <li>8 mm rod, about 640 mm in total: 345 mm for the barrel spine, 203 mm for the cross arms and 90 mm for the drum axle. Aluminium tube, steel rod or a hardwood dowel all work.</li>
+        <li>8 M3 x 30 socket head screws for the receiver, grip tongue and trigger. They thread straight into the plastic.</li>
+        <li>3 M3 x 20 socket head screws for the grip halves.</li>
+        <li>Super glue or epoxy for the barrel joints, torch, sight and Dragon's Breath tube.</li>
       </ul>
     </section>
     <section>
@@ -146,28 +145,28 @@
       <ul>
         <li>0.4 mm nozzle, 0.2 mm layers, 3 walls, 15% infill. PLA or PETG.</li>
         <li>Every STL is already turned the way it should sit on the bed. No supports.</li>
-        <li>Use a brim on the tall, thin parts: both barrel halves and the Dragon's Breath tube.</li>
-        <li>Suggested colours: brass for the receiver and shroud, black or steel for the barrel, drum and torch, gold for the shells, a wood fill for the grips.</li>
+        <li>Use a brim on the tall, thin parts: the rear barrel sleeve, the torch and above all the twisted rod.</li>
+        <li>Two colours cover it: brass for everything except the drum, recoil shield, shells and trigger, which are silver.</li>
       </ul>
     </section>
     <section class="wide">
       <h2>Assembly order</h2>
       <ol>
         <li>Screw the two grip halves together with the M3 x 20 screws.</li>
-        <li>Glue both barrel halves onto the 380 mm rod, leaving 14 mm of rod showing at the rear.</li>
-        <li>Lay the right receiver half on the table, outer face down. Drop in the grip tongue, the trigger with its spring, the recoil shield on its square boss, the drum on the 88 mm axle, and the rear end of the barrel.</li>
+        <li>Glue the rear drum flange onto the hex spigot of the drum core.</li>
+        <li>Lay the right receiver half on the table, outer face down. Drop in the grip tongue, the trigger, the recoil shield on its square boss, the drum on the 90 mm axle, and the rear end of the 345 mm spine rod.</li>
         <li>Close the left receiver half over it and drive in the eight M3 x 30 screws from the right side. The drum should spin freely.</li>
-        <li>Slide the fore grip collar onto the rear shroud from its plain end, then slide the rear shroud down the barrel until its notch seats on the key at the front of the receiver. Follow with the front shroud and the muzzle crown.</li>
-        <li>Slide the fore grip handle onto the collar's dovetail. Glue the crossbar into its notch, the front sight into its slot, and the torch onto the top rib.</li>
-        <li>Snap the two cradles onto the front shroud and press the Dragon's Breath tube into them. It comes off again the same way.</li>
+        <li>Slide the rear barrel sleeve down the spine rod onto the receiver, then the cross hub. Push the 203 mm rod through the hub and slide an arm and its cap onto each side. Finish the spine with the front sleeve and the muzzle cap. Glue each joint as you go.</li>
+        <li>Glue the pedestal to the top of the rear sleeve, 76 mm ahead of the receiver, and set the torch in it with the bell facing forward. Glue the cross sight into its slot at the muzzle.</li>
+        <li>Glue the small saddle under the hub. Push the twisted rod into the socket at the front of the receiver, slide the Dragon's Breath tube onto its free end, and glue the tube to the saddle.</li>
         <li>Load the twelve shells through the gate on the right side of the recoil shield.</li>
       </ol>
     </section>
     <section class="wide">
       <h2>Two cautions</h2>
       <ul>
-        <li>The shapes are an interpretation built from written descriptions of the film prop, not a measured copy. The inscriptions are stand-ins. Every dimension is a named parameter in <code>model.py</code> if you want to push it closer to the screen version.</li>
-        <li>It still looks like a firearm from a distance. Print the muzzle crown in blaze orange or paint the tip, and carry it in a bag outside the house.</li>
+        <li>The layout and proportions follow photos of the film prop, but nothing was measured from the original. The dense hand engraving is reduced to scrollwork on the grip, a few crosses and three inscriptions, and the trigger is fixed. Every dimension is a named parameter in <code>model.py</code>.</li>
+        <li>It still looks like a firearm from a distance. Print the muzzle cap in blaze orange or paint the tip, and carry it in a bag outside the house.</li>
       </ul>
     </section>
   </div>
@@ -239,7 +238,7 @@
     currentView = name; userMoved = false;
     const box = bounds(); if (box.isEmpty()) return;
     const centre = box.getCenter(new THREE.Vector3());
-    const dir = { quarter: [0.62, 0.62, 0.42], side: [0, 1, 0.02], top: [0, 0.001, 1] }[name];
+    const dir = { quarter: [0.6, -0.66, 0.36], side: [0, -1, 0.02], top: [0, 0.001, 1] }[name];
     const v = new THREE.Vector3(dir[0], dir[1], dir[2]).normalize();
     // Fit to each part's own box, which hugs the silhouette far better than one box around everything.
     const corners = [];
@@ -266,7 +265,7 @@
   }
 
   function setExplode(t) {
-    entries.forEach((e) => e.groups.forEach((g) => g.position.set(e.part.explode[0] * t, e.part.explode[1] * t, e.part.explode[2] * t)));
+    entries.forEach((e) => e.groups.forEach((g, i) => { const v = e.part.explodes[i]; g.position.set(v[0] * t, v[1] * t, v[2] * t); }));
     root.updateMatrixWorld(true);
     if (!userMoved) setView(currentView); else render();
   }

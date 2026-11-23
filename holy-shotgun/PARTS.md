@@ -5,25 +5,26 @@ Plastic is a rough estimate at 3 walls and 15% infill in PLA.
 
 | File | Qty | Filament | Size on bed (mm) | Height (mm) | Plastic each (g) | Orientation |
 |---|---|---|---|---|---|---|
-| `stl/frame_left.stl` | 1 | brass / gold | 203 x 129 | 21 | 100 | Split face on the bed, engraving up. No supports. |
-| `stl/frame_right.stl` | 1 | brass / gold | 203 x 129 | 21 | 99 | Split face on the bed, engraving up. No supports. |
-| `stl/grip_left.stl` | 1 | wood / dark brown | 70 x 128 | 17 | 21 | Split face on the bed. |
-| `stl/grip_right.stl` | 1 | wood / dark brown | 70 x 128 | 17 | 21 | Split face on the bed. |
-| `stl/trigger.stl` | 1 | black / steel | 11 x 45 | 8 | 1 | Flat on its side. |
-| `stl/recoil_shield.stl` | 1 | black / steel | 126 x 126 | 4 | 21 | Flat. |
-| `stl/drum.stl` | 1 | black / steel | 123 x 123 | 64 | 214 | Front face on the bed so the chambers open upward. |
-| `stl/shell.stl` | 12 | gold | 22 x 22 | 60 | 8 | Rim on the bed. Print 12. |
-| `stl/barrel_rear.stl` | 1 | black / steel | 22 x 22 | 191 | 27 | Upright, use a brim. |
-| `stl/barrel_front.stl` | 1 | black / steel | 22 x 22 | 190 | 27 | Upright, muzzle up, use a brim. |
-| `stl/shroud_rear.stl` | 1 | brass / gold | 48 x 44 | 159 | 27 | Upright, frame end on the bed. |
-| `stl/shroud_front.stl` | 1 | brass / gold | 48 x 44 | 156 | 26 | Upright, banded nose up. |
-| `stl/crossbar.stl` | 1 | brass / gold | 16 x 112 | 7 | 4 | Flat. |
-| `stl/front_sight.stl` | 1 | brass / gold | 22 x 12 | 3 | 0 | Flat on its back. |
-| `stl/muzzle_crown.stl` | 1 | brass / gold | 33 x 33 | 30 | 4 | Upright. |
-| `stl/torch.stl` | 1 | black / steel | 28 x 30 | 92 | 17 | Upright, tail cap on the bed. |
-| `stl/foregrip_collar.stl` | 1 | brass / gold | 54 x 49 | 30 | 8 | Ring flat on the bed. |
-| `stl/foregrip_handle.stl` | 1 | wood / dark brown | 38 x 32 | 100 | 36 | Upright, pommel on the bed. |
-| `stl/dragon_tube.stl` | 1 | gold | 26 x 26 | 200 | 31 | Upright, knurled cap on the bed, use a brim. |
-| `stl/dragon_cradle.stl` | 2 | brass / gold | 54 x 46 | 14 | 3 | Flat. Print 2. |
+| `stl/receiver_left.stl` | 1 | brass | 142 x 90 | 38 | 51 | Split face on the bed, engraving up. |
+| `stl/receiver_right.stl` | 1 | brass | 142 x 90 | 38 | 50 | Split face on the bed, engraving up. |
+| `stl/grip_left.stl` | 1 | brass | 133 x 196 | 17 | 86 | Split face on the bed, scrollwork up. |
+| `stl/grip_right.stl` | 1 | brass | 133 x 196 | 17 | 86 | Split face on the bed, scrollwork up. |
+| `stl/trigger.stl` | 1 | silver | 12 x 40 | 8 | 1 | Flat on its side. |
+| `stl/recoil_shield.stl` | 1 | silver | 113 x 112 | 4 | 16 | Flat. |
+| `stl/drum_core.stl` | 1 | silver | 112 x 112 | 64 | 94 | Front flange on the bed, hub and hex spigot up. |
+| `stl/drum_rear.stl` | 1 | silver | 112 x 112 | 8 | 16 | Flat. |
+| `stl/shell.stl` | 12 | silver | 19 x 19 | 60 | 7 | Upright, base on the bed. Print 12. |
+| `stl/barrel_tail.stl` | 1 | brass | 34 x 34 | 202 | 29 | Upright, mortise end on the bed. Use a brim. |
+| `stl/cross_hub.stl` | 1 | brass | 44 x 64 | 34 | 21 | As it sits on the prop, bottom flat on the bed. |
+| `stl/barrel_head.stl` | 1 | brass | 34 x 34 | 102 | 16 | Upright, muzzle end on the bed. |
+| `stl/barrel_arm.stl` | 2 | brass | 34 x 34 | 80 | 13 | Upright, cap end on the bed. Print 2. |
+| `stl/arm_cap.stl` | 2 | brass | 39 x 39 | 24 | 8 | Ringed face on the bed. Print 2. |
+| `stl/muzzle_cap.stl` | 1 | brass | 39 x 39 | 24 | 8 | Ringed face on the bed. |
+| `stl/front_sight.stl` | 1 | brass | 24 x 12 | 3 | 0 | Flat on its back. |
+| `stl/torch.stl` | 1 | brass | 40 x 40 | 190 | 62 | Upright, flared bell up. Use a brim. |
+| `stl/torch_pedestal.stl` | 1 | brass | 46 x 20 | 13 | 4 | Flat base on the bed. |
+| `stl/dragon_tube.stl` | 1 | brass | 27 x 27 | 124 | 23 | Upright, crown up. |
+| `stl/dragon_mount.stl` | 1 | brass | 24 x 14 | 7 | 1 | Flat face on the bed, cradle up. |
+| `stl/twisted_rod.stl` | 1 | brass | 11 x 11 | 202 | 5 | Upright. Use a brim and slow the print down. |
 
-Estimated plastic in total: about 785 g.
+Estimated plastic in total: about 699 g.
