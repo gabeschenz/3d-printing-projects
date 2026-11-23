@@ -8,8 +8,8 @@ Opens viewer/index.html in headless Chromium, drives it through the small
     render.png, render-side.png, render-top.png, render-exploded.png
     pull-apart.gif        the prop pulling apart and going back together
 
-It reads viewer/parts.json, so run `python build.py` first (or let build.py
-call this for you).  Needs the packages in requirements-render.txt and a
+It reads viewer/index.html and viewer/parts.json, which build.py writes, so
+run `python build.py` first (or let build.py call this for you).  Needs the packages in requirements-render.txt and a
 Chromium that Playwright can launch (`playwright install chromium`).
 
 Two environment variables cover unusual setups:
@@ -34,15 +34,6 @@ HERE = Path(__file__).parent
 VIEWER = HERE / "viewer"
 DOCS = HERE / "docs"
 
-# The viewer page is a fragment (the hosting page normally supplies the
-# document shell), so wrap it in one before serving it.
-SHELL_HEAD = (
-    '<!doctype html><html><head><meta charset="utf-8">'
-    '<meta name="viewport" content="width=device-width,initial-scale=1">'
-    "<style>body{margin:0}[hidden]{display:none!important}</style></head><body>"
-)
-SHELL_TAIL = "</body></html>"
-
 # CDN script name -> path inside a local three.js package.
 THREE_FILES = {
     "three.min.js": "build/three.min.js",
@@ -61,18 +52,7 @@ GIF_FRAME_MS = 60
 HOLD_CLOSED, MOVE, HOLD_OPEN = 8, 26, 14   # frames
 
 
-class _ViewerHandler(http.server.SimpleHTTPRequestHandler):
-    def do_GET(self):
-        if self.path.split("?")[0] in ("/", "/index.html"):
-            body = (SHELL_HEAD + (VIEWER / "index.html").read_text() + SHELL_TAIL).encode()
-            self.send_response(200)
-            self.send_header("Content-Type", "text/html; charset=utf-8")
-            self.send_header("Content-Length", str(len(body)))
-            self.end_headers()
-            self.wfile.write(body)
-        else:
-            super().do_GET()
-
+class _QuietHandler(http.server.SimpleHTTPRequestHandler):
     def log_message(self, *args):
         pass
 
@@ -118,14 +98,15 @@ def render_all():
     from PIL import Image
     from playwright.sync_api import sync_playwright
 
-    if not (VIEWER / "parts.json").exists():
-        raise FileNotFoundError("viewer/parts.json is missing; run build.py first")
+    for needed in ("index.html", "parts.json"):
+        if not (VIEWER / needed).exists():
+            raise FileNotFoundError(f"viewer/{needed} is missing; run build.py first")
     DOCS.mkdir(exist_ok=True)
     three_dir = os.environ.get("THREE_DIR")
     chromium = os.environ.get("CHROMIUM_PATH")
 
     server = http.server.ThreadingHTTPServer(
-        ("127.0.0.1", 0), functools.partial(_ViewerHandler, directory=str(VIEWER)))
+        ("127.0.0.1", 0), functools.partial(_QuietHandler, directory=str(VIEWER)))
     threading.Thread(target=server.serve_forever, daemon=True).start()
     written = []
     try:

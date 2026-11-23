@@ -11,7 +11,7 @@ free-spinning ornament, and the shells are solid dummies.
 
 ![Assembled prop](docs/render.png)
 
-How it comes apart:
+How it comes apart (there is an [interactive version](viewer/) with a slider):
 
 ![The prop pulling apart into its printed parts and going back together](docs/pull-apart.gif)
 
@@ -56,7 +56,7 @@ at the top of `model.py` and rebuilding.
 | `PARTS.md` | Print list: quantity, filament, size and orientation for each STL |
 | `step/assembly.step` | The full assembly with named, coloured parts, for Fusion 360, FreeCAD and similar |
 | `docs/` | Renders, the pull-apart animation and line drawings (`side.svg`, `top.svg`, `iso.svg`, `exploded.svg`) |
-| `viewer/` | Interactive 3D viewer with an exploded-view slider |
+| `viewer/` | Interactive 3D viewer with a pull-apart slider. `index.html` is the page to open; it is generated from `page.html` |
 | `model.py` | The parametric model (build123d) |
 | `build.py` | Checks the model and regenerates everything above |
 | `render.py` | Makes the renders and the pull-apart animation from the viewer; `build.py` calls it |
@@ -164,9 +164,23 @@ Parameters worth knowing about, all at the top of `model.py`:
 | `N_CHAMBERS`, `DRUM_PITCH_R`, `DRUM_R` | 12, 43.5, 56 | Drum layout |
 | `TEXT_*` | see above | The engraved inscriptions |
 
-To view `viewer/index.html` locally, serve the folder
-(`python -m http.server` inside `viewer/`) and open it in a browser. It loads
-three.js from a CDN.
+## The interactive viewer
+
+`viewer/index.html` is a complete, self-contained page: it needs only
+`parts.json` beside it and loads three.js from a CDN.
+
+- **On GitHub Pages:** it works as it is. With Pages publishing this
+  repository, the viewer is at `/holy-shotgun/viewer/` under the site
+  address, and this README, animation included, is the page at
+  `/holy-shotgun/`. Pages serves the committed files and does not run the
+  build, so rebuild and commit after changing the model.
+- **Locally:** browsers will not load `parts.json` from a `file://` address,
+  so serve the folder (`python -m http.server` inside `viewer/`) and open the
+  address it prints.
+
+To change the page, edit `viewer/page.html` and rebuild. That file is the
+source: it is a fragment without a document shell, and `build.py` wraps it to
+produce `index.html`.
 
 ## What has and has not been checked
 
