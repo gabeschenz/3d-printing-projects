@@ -1,12 +1,14 @@
 """Build, check and export the holy shotgun prop.
 
-    python build.py            # checks + STL + STEP + drawings + PARTS.md
-    python build.py --no-draw  # skip the (slow) line drawings
+    python build.py              # checks + STL + STEP + drawings + renders + PARTS.md
+    python build.py --no-draw    # skip the (slow) line drawings
+    python build.py --no-render  # skip the README renders and animation
 
 Outputs, relative to this file:
     stl/<part>.stl            one file per printed part, already in print orientation
     step/assembly.step        full assembly with part names and colours
     docs/*.svg                line drawings of the assembly and the exploded view
+    docs/*.png, *.gif         shaded renders and the pull-apart animation (see render.py)
     viewer/parts.json         meshes and part data for the interactive viewer
     PARTS.md                  generated print list
 """
@@ -231,6 +233,7 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--no-draw", action="store_true")
     ap.add_argument("--no-export", action="store_true")
+    ap.add_argument("--no-render", action="store_true")
     args = ap.parse_args()
 
     t0 = time.time()
@@ -278,6 +281,18 @@ def main():
         draw(asm, docs / "iso.svg", (1300, -1200, 700), centre)
         draw(assembly_compound(parts, exploded=True), docs / "exploded.svg", (1400, -1400, 800), centre)
         print(f"wrote drawings in {time.time() - t1:.1f}s")
+
+    if not args.no_render:
+        # Optional step: it needs a browser, so a missing one is reported, not fatal.
+        t2 = time.time()
+        try:
+            import render
+            written = render.render_all()
+            print(f"wrote {len(written)} renders, including the pull-apart animation, in {time.time() - t2:.1f}s")
+        except ImportError as err:
+            print(f"renders NOT updated: {err.name} is not installed (pip install -r requirements-render.txt)")
+        except Exception as err:  # no browser, no network for the 3D library, and so on
+            print(f"renders NOT updated: {str(err).splitlines()[0]}")
 
     if not ok or clashes:
         sys.exit(1)

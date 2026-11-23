@@ -362,8 +362,16 @@
   window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', applyTheme);
   applyTheme();
 
+  // Handle for scripted captures: render.py drives the page through this to make the README images.
+  window.kitViewer = {
+    ready: false,
+    view: (name) => setView(name),
+    explode: (t) => { slider.value = Math.round(t * 100); setExplode(t); },
+    holdCamera: () => { userMoved = true; },
+  };
+
   fetch('parts.json').then((r) => { if (!r.ok) throw new Error(r.status); return r.json(); })
-    .then((parts) => { build(parts); setExplode(slider.value / 100); })
+    .then((parts) => { build(parts); setExplode(slider.value / 100); window.kitViewer.ready = true; })
     .catch(() => { msg.textContent = 'The model data did not load. Reload the page to try again.'; });
 })();
 </script>

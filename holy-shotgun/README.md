@@ -59,6 +59,7 @@ at the top of `model.py` and rebuilding.
 | `viewer/` | Interactive 3D viewer with an exploded-view slider |
 | `model.py` | The parametric model (build123d) |
 | `build.py` | Checks the model and regenerates everything above |
+| `render.py` | Makes the renders and the pull-apart animation from the viewer; `build.py` calls it |
 
 ## Printing
 
@@ -124,14 +125,32 @@ inserts are needed.
 
 ```
 pip install -r requirements.txt
-python build.py            # checks, STL, STEP, drawings, viewer data, PARTS.md
-python build.py --no-draw  # skip the line drawings, which take the longest
+python build.py              # checks, STL, STEP, drawings, viewer data, renders, PARTS.md
+python build.py --no-draw    # skip the line drawings, which take the longest
+python build.py --no-render  # skip the renders and the pull-apart animation
 ```
 
-A full build takes about a minute. `build.py` exits with an error if any
+A full build takes about two minutes. `build.py` exits with an error if any
 printed part is not a single valid solid, does not fit the bed, collides with
 another part in the assembled prop, or if the drum cannot turn without
 touching something.
+
+The renders in `docs/`, including the pull-apart animation, are made by
+opening the viewer in a headless browser, so that step needs two extra
+things:
+
+```
+pip install -r requirements-render.txt
+playwright install chromium
+```
+
+If they are missing, the build still runs and prints
+`renders NOT updated` with the reason, so the model checks and STL export
+never depend on a browser. `python render.py` redoes just the images from the
+last build. Two environment variables cover unusual setups: `CHROMIUM_PATH`
+points at an existing Chrome or Chromium binary, and `THREE_DIR` points at a
+local copy of the three.js 0.128 package for machines that cannot reach the
+CDN the viewer loads it from.
 
 Parameters worth knowing about, all at the top of `model.py`:
 
