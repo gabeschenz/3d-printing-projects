@@ -11,9 +11,11 @@ free-spinning ornament, and the shells are solid dummies.
 
 ![Assembled prop](docs/render.png)
 
-![Side view](docs/render-side.png)
+How it comes apart:
 
-![Exploded view](docs/render-exploded.png)
+![The prop pulling apart into its printed parts and going back together](docs/pull-apart.gif)
+
+![Side view](docs/render-side.png)
 
 | | |
 |---|---|
@@ -53,7 +55,7 @@ at the top of `model.py` and rebuilding.
 | `stl/` | One STL per printed part, already turned the way it should sit on the bed |
 | `PARTS.md` | Print list: quantity, filament, size and orientation for each STL |
 | `step/assembly.step` | The full assembly with named, coloured parts, for Fusion 360, FreeCAD and similar |
-| `docs/` | Renders and line drawings (`side.svg`, `top.svg`, `iso.svg`, `exploded.svg`) |
+| `docs/` | Renders, the pull-apart animation and line drawings (`side.svg`, `top.svg`, `iso.svg`, `exploded.svg`) |
 | `viewer/` | Interactive 3D viewer with an exploded-view slider |
 | `model.py` | The parametric model (build123d) |
 | `build.py` | Checks the model and regenerates everything above |
@@ -95,6 +97,8 @@ The screws thread directly into 2.8 mm pilot holes in the plastic; no nuts or
 inserts are needed.
 
 ## Assembly
+
+![Exploded view](docs/render-exploded.png)
 
 1. Screw the two grip halves together with the M3 x 20 screws.
 2. Glue `drum_rear` onto the hex spigot of `drum_core`.
