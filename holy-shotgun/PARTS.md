@@ -5,12 +5,12 @@ Plastic is a rough estimate at 3 walls and 15% infill in PLA.
 
 | File | Qty | Filament | Size on bed (mm) | Height (mm) | Plastic each (g) | Orientation |
 |---|---|---|---|---|---|---|
-| `stl/receiver_left.stl` | 1 | brass | 142 x 90 | 38 | 51 | Split face on the bed, engraving up. |
+| `stl/receiver_left.stl` | 1 | brass | 142 x 90 | 38 | 50 | Split face on the bed, engraving up. |
 | `stl/receiver_right.stl` | 1 | brass | 142 x 90 | 38 | 50 | Split face on the bed, engraving up. |
 | `stl/grip_left.stl` | 1 | brass | 133 x 196 | 17 | 86 | Split face on the bed, scrollwork up. |
 | `stl/grip_right.stl` | 1 | brass | 133 x 196 | 17 | 86 | Split face on the bed, scrollwork up. |
 | `stl/trigger.stl` | 1 | silver | 12 x 40 | 8 | 1 | Flat on its side. |
-| `stl/recoil_shield.stl` | 1 | silver | 113 x 112 | 4 | 16 | Flat. |
+| `stl/recoil_shield.stl` | 1 | silver | 118 x 112 | 4 | 17 | Flat. |
 | `stl/drum_core.stl` | 1 | silver | 112 x 112 | 64 | 94 | Front flange on the bed, hub and hex spigot up. |
 | `stl/drum_rear.stl` | 1 | silver | 112 x 112 | 8 | 16 | Flat. |
 | `stl/shell.stl` | 12 | silver | 19 x 19 | 60 | 7 | Upright, base on the bed. Print 12. |

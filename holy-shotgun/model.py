@@ -19,6 +19,7 @@ from __future__ import annotations
 import math
 from dataclasses import dataclass, field
 
+from assembly import Fit, Motion, Step
 from build123d import (
     Box,
     Circle,
@@ -76,6 +77,7 @@ DRUM_HUB_R = 30.0
 DRUM_HEX_AF = 44.0       # hex spigot that keys the rear flange to the hub
 SHELL_R = 9.5
 SHIELD_X0, SHIELD_X1 = -4.5, -0.5
+SHIELD_TAB_HALF_W, SHIELD_TAB_H = 10.0, 4.0   # tab on top of the shield that stops it turning
 
 # Receiver, printed as left/right halves split on Y=0.
 RECV_HALF_W = 18.0
@@ -278,14 +280,14 @@ def receiver_full():
     # Crown the whole top to the same curve.
     body &= xcyl(HOOD_R_OUT, RECV_X0 - 1, RECV_X1 + 1, z=AXLE_Z) + box(RECV_X0 - 1, RECV_X1 + 1, -60, 60, -120, 0)
 
-    # Square boss that keys the recoil shield and carries the drum axle.
-    body += box(SHIELD_X0 - 1, SHIELD_X1, -6, 6, AXLE_Z - 6, AXLE_Z + 6)
     # Tenon for the rear barrel sleeve.
     body += oct_x(TENON_AF, RECV_X1 - 1, RECV_X1 + TENON_LEN)
 
     cuts = [
         xcyl(ROD_R + FIT, 84, RECV_X1 + TENON_LEN + 1, z=SPINE_Z),          # barrel spine
-        xcyl(ROD_R + FIT, -15, SHIELD_X1 + 1, z=AXLE_Z),                     # axle, rear
+        xcyl(ROD_R + FIT, -15, SHIELD_X0 + 1, z=AXLE_Z),                     # axle, rear
+        box(SHIELD_X0 - 0.2, SHIELD_X1 + 0.2, -(SHIELD_TAB_HALF_W + 0.2), SHIELD_TAB_HALF_W + 0.2,
+            STRAP_BOT_Z - 2, STRAP_BOT_Z + SHIELD_TAB_H + 0.2),              # groove for the shield's tab
         xcyl(ROD_R + FIT, DRUM_X1 + 0.4, 76, z=AXLE_Z),                      # axle, front
         xcyl(TWIST_SOCKET_R, 94, RECV_X1 + 1, z=DRAGON_Z),                   # twisted rod socket
         box(RECV_X0 - 1, -7.8, -5.2, 5.2, -34.3, 12.3),                      # grip tongue pocket
@@ -374,10 +376,15 @@ def chamber_centres():
 
 def recoil_shield():
     """Fixed plate behind the drum.  It keeps the shells in; they load through
-    the gate on the right-hand side."""
+    the gate on the right-hand side.
+
+    It rides on the axle and a tab on top sits in a groove under the
+    receiver strap, so it cannot turn.  Both features let it drop into an
+    open receiver half sideways, together with the drum.
+    """
     sk = Pos(0, AXLE_Z) * Circle(DRUM_R + 0.6)
-    sk &= rect(-100, 100, AXLE_Z - 100, STRAP_BOT_Z - 0.2)
-    sk -= Pos(0, AXLE_Z) * Rectangle(12.4, 12.4)
+    sk += rect(-SHIELD_TAB_HALF_W, SHIELD_TAB_HALF_W, 0, STRAP_BOT_Z + SHIELD_TAB_H)
+    sk -= Pos(0, AXLE_Z) * Circle(ROD_R + FIT)
     gate = SHELL_R + 0.6
     sk -= Pos(-DRUM_PITCH_R, AXLE_Z) * Circle(gate)
     sk -= rect(-100, -DRUM_PITCH_R, AXLE_Z - gate, AXLE_Z + gate)
@@ -521,7 +528,7 @@ def arm_cap():
 
 def front_sight():
     """Small upright cross that plugs into the top of the barrel at the muzzle."""
-    x1 = HUB_X1 + HEAD_LEN - 14.0
+    x1 = HUB_X1 + HEAD_LEN - 14.15   # 0.15 mm of slot either side
     half = OCT_AF / 2
     sk = rect(-1.75, 1.75, half - 2.5, half + 21) + rect(-6, 6, half + 12, half + 15.5)
     return prism_yz(sk, x1 - 3.0, x1)
@@ -702,5 +709,110 @@ def build_parts():
     ]
 
 
-# Parts that turn together when the drum is spun; used by the motion check.
-DRUM_PARTS = ("drum_core", "drum_rear", "shell")
+# --------------------------------------------------------------------------
+# Assembly intent: how the parts are meant to move, fit and go together.
+# build.py tests the geometry against these declarations (see assembly.py).
+# --------------------------------------------------------------------------
+
+X_POS, X_NEG = (1, 0, 0), (-1, 0, 0)
+Y_POS, Y_NEG = (0, 1, 0), (0, -1, 0)
+Z_POS, Z_NEG = (0, 0, 1), (0, 0, -1)
+ACROSS_X = [Y_POS, Y_NEG, Z_POS, Z_NEG]   # the four directions square to a part that slides along X
+ACROSS_Y = [X_POS, X_NEG, Z_POS, Z_NEG]
+
+DRUM_PARTS = ["drum_core", "drum_rear", "shell"]
+GATE_SHELL = ("shell", 9)                 # the copy that sits behind the loading gate
+
+MOTIONS = [
+    Motion("drum", DRUM_PARTS, origin=(0, 0, AXLE_Z), direction=(1, 0, 0),
+           angles=[k * 360 / N_CHAMBERS / 4 for k in (1, 2, 3)],   # three positions between one chamber and the next
+           carried_by=["axle_rod"], min_gap=0.4),
+]
+
+# Glued-on parts move with the part they are glued to, so they are listed
+# together: the fit being tested is the one that locates the whole body.
+HUB_BODY = ["cross_hub", "barrel_arm", "arm_cap", "cross_rod", "dragon_mount", "dragon_tube"]
+
+FITS = [
+    Fit(["barrel_tail", "torch_pedestal", "torch"], ACROSS_X, FIT, "tenon and mortise"),
+    Fit(HUB_BODY, ACROSS_X, FIT, "tenon and mortise"),
+    Fit(["barrel_head", "front_sight"], ACROSS_X, FIT, "tenon and mortise"),
+    Fit(["muzzle_cap"], ACROSS_X, FIT, "tenon and mortise"),
+    Fit([("barrel_arm", 0)], ACROSS_Y, FIT, "tenon and mortise"),
+    Fit([("arm_cap", 0)], ACROSS_Y, FIT, "tenon and mortise"),
+    Fit(["drum_rear"], ACROSS_X, FIT, "hex spigot"),
+    Fit(DRUM_PARTS, ACROSS_X, SLIDE, "drum on its axle"),
+    Fit([("shell", 0)], ACROSS_X, 0.3, "shell in its chamber"),
+    Fit(["axle_rod"], ACROSS_X, FIT, "axle in the receiver"),
+    Fit(["spine_rod"], ACROSS_X, FIT, "spine in the receiver"),
+    Fit(["cross_rod"], ACROSS_Y, FIT + 0.05, "cross rod in the hub"),
+    Fit(["recoil_shield"], ACROSS_X, FIT, "shield on the axle"),
+    Fit(["grip_left", "grip_right"], [Z_POS, Z_NEG], 0.3, "grip tongue, vertical"),
+    Fit(["grip_left", "grip_right"], [Y_POS, Y_NEG], 0.2, "grip tongue, sideways"),
+    Fit(["trigger"], [X_POS, X_NEG, Z_POS], 0.3, "trigger in its pocket"),
+    Fit(["torch"], [Z_NEG], FIT, "torch in its cradle"),
+    Fit(["front_sight"], [X_POS, X_NEG], 0.15, "sight in its slot, fore and aft"),
+    Fit(["front_sight"], [Y_POS, Y_NEG], 0.2, "sight in its slot, sideways"),
+]
+
+# The build order.  The titles are the instructions: build.py writes them to
+# ASSEMBLY.md after checking that every step can physically be done.
+DRUM_STACK = ["drum_core", "drum_rear", "axle_rod", "recoil_shield"]
+BUILD_ORDER = [
+    Step("Screw the two grip halves together with the three M3 x 20 screws.",
+         ["grip_left"], [(0, 40, 0)], bench=["grip_right"]),
+    Step("Glue the rear drum flange onto the hex spigot of the drum core.",
+         ["drum_rear"], [(-14, 0, 0)], bench=["drum_core"]),
+    Step("Push the 90 mm axle through the drum.",
+         ["axle_rod"], [(-100, 0, 0)], bench=["drum_core", "drum_rear"]),
+    Step("Slip the recoil shield onto the axle behind the drum, tab at the top.",
+         ["recoil_shield"], [(-20, 0, 0)], bench=["drum_core", "drum_rear", "axle_rod"]),
+    Step("Lay the right receiver half on the table, outer face down.",
+         ["receiver_right"], []),
+    Step("Lower the grip so its tongue drops into the back of the receiver.",
+         ["grip_left", "grip_right"], [(0, 40, 0)]),
+    Step("Drop the trigger into its pocket.",
+         ["trigger"], [(0, 30, 0)]),
+    Step("Lower the drum, axle and shield in together. The axle ends sit in their grooves "
+         "and the shield's tab sits in the slot under the strap.",
+         DRUM_STACK, [(0, 130, 0)]),
+    Step("Lay the rear end of the 345 mm spine rod in its groove at the front of the receiver.",
+         ["spine_rod"], [(0, 30, 0)]),
+    Step("Close the left receiver half over it and drive in the eight M3 x 30 screws from the right side. "
+         "The drum should spin freely.",
+         ["receiver_left"], [(0, 60, 0)]),
+    Step("Slide the rear barrel sleeve down the spine rod onto the receiver. Glue it.",
+         ["barrel_tail"], [(340, 0, 0)]),
+    Step("Slide the cross hub on behind it. Glue it.",
+         ["cross_hub"], [(140, 0, 0)]),
+    Step("Push the 203 mm rod through the hub from the right.",
+         ["cross_rod"], [(0, -240, 0)]),
+    Step("Slide the right arm over the rod into the hub. Glue it.",
+         [("barrel_arm", 0)], [(0, -95, 0)]),
+    Step("Slide the left arm on the same way.",
+         [("barrel_arm", 1)], [(0, 95, 0)]),
+    Step("Glue a ringed cap into the end of the right arm.",
+         [("arm_cap", 0)], [(0, -20, 0)]),
+    Step("Glue the other ringed cap into the left arm.",
+         [("arm_cap", 1)], [(0, 20, 0)]),
+    Step("Slide the front barrel sleeve down the spine rod into the hub. Glue it.",
+         ["barrel_head"], [(110, 0, 0)]),
+    Step("Glue the muzzle cap into the end of the barrel.",
+         ["muzzle_cap"], [(20, 0, 0)]),
+    Step("Glue the pedestal to the top of the rear sleeve, 76 mm ahead of the receiver.",
+         ["torch_pedestal"], [(0, 0, 30)]),
+    Step("Set the torch in the pedestal with the bell facing forward. Glue it.",
+         ["torch"], [(0, 0, 45)]),
+    Step("Glue the cross sight into its slot at the muzzle.",
+         ["front_sight"], [(0, 0, 15)]),
+    Step("Offer the twisted rod up under the barrel and push it back into the socket at the front of the receiver.",
+         ["twisted_rod"], [(10, 0, -40), (10, 0, 0)]),
+    Step("Glue the small saddle onto the Dragon's Breath tube, its rear edge 16 mm from the socket end.",
+         ["dragon_mount"], [(0, 0, 20)], bench=["dragon_tube"]),
+    Step("Offer the tube up under the hub, saddle against the hub, then slide it back 10 mm onto the twisted rod. "
+         "Glue the saddle to the hub.",
+         ["dragon_tube", "dragon_mount"], [(10, 0, -40), (10, 0, 0)]),
+    Step("Load a shell through the gate on the right side of the recoil shield, turn the drum one chamber "
+         "and repeat for all twelve.",
+         [GATE_SHELL], [(-70, 0, 0)], stands_for=["shell"]),
+]

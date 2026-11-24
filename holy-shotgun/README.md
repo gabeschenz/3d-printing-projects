@@ -54,11 +54,13 @@ at the top of `model.py` and rebuilding.
 |---|---|
 | `stl/` | One STL per printed part, already turned the way it should sit on the bed |
 | `PARTS.md` | Print list: quantity, filament, size and orientation for each STL |
+| `ASSEMBLY.md` | Assembly order, generated from the build order the checks verify |
 | `step/assembly.step` | The full assembly with named, coloured parts, for Fusion 360, FreeCAD and similar |
 | `docs/` | Renders, the pull-apart animation and line drawings (`side.svg`, `top.svg`, `iso.svg`, `exploded.svg`) |
 | `viewer/` | Interactive 3D viewer with a pull-apart slider. `index.html` is the page to open; it is generated from `page.html` |
 | `model.py` | The parametric model (build123d) |
 | `build.py` | Checks the model and regenerates everything above |
+| `assembly.py` | The motion, fit and build-order checks that `build.py` runs |
 | `render.py` | Makes the renders and the pull-apart animation from the viewer; `build.py` calls it |
 
 ## Printing
@@ -101,39 +103,33 @@ inserts are needed.
 
 ![Exploded view](docs/render-exploded.png)
 
-1. Screw the two grip halves together with the M3 x 20 screws.
-2. Glue `drum_rear` onto the hex spigot of `drum_core`.
-3. Lay `receiver_right` on the table, outer face down. Drop in the grip
-   tongue, the trigger, the recoil shield on its square boss, the drum on the
-   90 mm axle, and the rear end of the 345 mm spine rod.
-4. Close `receiver_left` over it and drive in the eight M3 x 30 screws from
-   the right side. The drum should spin freely.
-5. Slide `barrel_tail` down the spine rod onto the receiver, then `cross_hub`.
-   Push the 203 mm rod through the hub and slide a `barrel_arm` and an
-   `arm_cap` onto each side. Finish the spine with `barrel_head` and
-   `muzzle_cap`. Glue each joint as you go.
-6. Glue `torch_pedestal` to the top of the rear sleeve, 76 mm ahead of the
-   receiver, and set the torch in it with the bell facing forward. Glue the
-   cross sight into its slot at the muzzle.
-7. Glue `dragon_mount` under the hub. Push the twisted rod into the socket at
-   the front of the receiver, slide `dragon_tube` onto its free end, and glue
-   the tube to the mount.
-8. Load the twelve shells through the gate on the right side of the recoil
-   shield.
+The step-by-step order is in [ASSEMBLY.md](ASSEMBLY.md). In outline:
+
+1. Build three sub-assemblies on the bench: the grip (two halves screwed
+   together), the drum (rear flange, axle and recoil shield on the drum
+   core), and later the Dragon's Breath tube with its saddle.
+2. Lay the right receiver half down, drop in the grip, trigger, drum and
+   spine rod, and close the left half over them with eight screws.
+3. Thread the barrel onto the spine rod from the receiver outward: rear
+   sleeve, hub, cross rod, arms and caps, front sleeve, muzzle cap.
+4. Add the torch, the sight, the twisted rod and the Dragon's Breath tube,
+   then load the shells.
+
+That file is generated from the build order declared in `model.py`, and the
+build checks every step of it, so it cannot drift from the model.
 
 ## Rebuilding and customising
 
 ```
 pip install -r requirements.txt
-python build.py              # checks, STL, STEP, drawings, viewer data, renders, PARTS.md
-python build.py --no-draw    # skip the line drawings, which take the longest
-python build.py --no-render  # skip the renders and the pull-apart animation
+python build.py                # everything: checks, STL, STEP, drawings, viewer, renders, lists
+python build.py --no-assembly  # skip the motion, fit and build-order checks
+python build.py --no-draw      # skip the line drawings
+python build.py --no-render    # skip the renders and the pull-apart animation
 ```
 
-A full build takes about two minutes. `build.py` exits with an error if any
-printed part is not a single valid solid, does not fit the bed, collides with
-another part in the assembled prop, or if the drum cannot turn without
-touching something.
+A full build takes about three minutes; the assembly checks are about half of
+that. `build.py` exits with an error if any check below fails.
 
 The renders in `docs/`, including the pull-apart animation, are made by
 opening the viewer in a headless browser, so that step needs two extra
@@ -182,19 +178,37 @@ To change the page, edit `viewer/page.html` and rebuild. That file is the
 source: it is a fragment without a document shell, and `build.py` wraps it to
 produce `index.html`.
 
-## What has and has not been checked
+## What the build checks
 
-Checked by the build: every part is a valid single solid, every part fits a
-220 mm bed with margin, no two parts overlap in the assembled model, and the
-drum clears everything at three positions between one chamber and the
-next.
+The model is code, so its checks run like tests. `model.py` declares how the
+parts are meant to move, fit and go together, and `build.py` tests the
+geometry against those declarations on every build.
 
-Checked by hand for this release: every STL is watertight, and overhangs
-measured in print orientation come down to short bridges and small arches.
+| Check | What it proves |
+|---|---|
+| Parts | Every printed part is one valid solid and fits the bed |
+| Interference | No two parts occupy the same space in the assembled prop |
+| Motion | The drum hits nothing at three positions between one chamber and the next, and keeps at least 0.4 mm from everything it does not ride on |
+| Fits | For each declared fit, the part is free to move just under its intended clearance and is stopped just beyond it, in each direction tested |
+| Build order | For each step, the part can travel its insertion path, sampled every 4 mm, without passing through anything fitted before it; and every part is fitted by some step |
 
-Not checked: the parts have not been run through a slicer or printed, and the
-assembly order has been reasoned through but not tried. Fits depend on the
-printer, so treat the clearances as a starting point.
+To change a fit or the order, edit `FITS` or `BUILD_ORDER` at the end of
+`model.py`. The first run of these checks found three real faults in the
+design, which are now fixed: the recoil shield could not be installed at all,
+the Dragon's Breath tube could not pass its own saddle in the order given,
+and the front sight sat against one wall of its slot.
+
+What they do not cover:
+
+- Paths are straight lines. A step that needs a twist or a wiggle is not
+  modelled, and neither is room for fingers or a screwdriver.
+- Screws and glue are not parts, so a joint held only by them (the pedestal
+  on the barrel, for instance) has no fit to test.
+- Fits are tested along the main axes, not for rocking or rotation.
+- Nothing here is physical. The parts have not been run through a slicer or
+  printed, and real clearances depend on the printer. Every STL was confirmed
+  watertight and overhangs were measured by hand for this release, but
+  neither is part of the build.
 
 ## Carrying it
 
